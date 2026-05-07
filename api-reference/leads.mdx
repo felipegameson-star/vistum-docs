@@ -1,0 +1,181 @@
+---
+title: Criar Lead
+api: "POST /api/v1/leads"
+description: Cria ou atualiza um contato e opcionalmente o adiciona a um pipeline. Ideal para integrações com n8n, Zapier, Google Sheets, formulários e anúncios.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `leads:write`
+</ParamField>
+
+## Body
+
+<ParamField body="phone" type="string" required>
+  Número de telefone do contato. Aceita formato E.164 (`5511999887766`) ou brasileiro (`11999887766` ou `(11) 99988-7766`). O número é normalizado automaticamente com DDI 55 se ausente.
+</ParamField>
+
+<ParamField body="name" type="string">
+  Nome completo do contato.
+</ParamField>
+
+<ParamField body="email" type="string">
+  E-mail do contato.
+</ParamField>
+
+<ParamField body="notes" type="string">
+  Observações internas. Aparece no campo de notas do contato no CRM.
+</ParamField>
+
+<ParamField body="tags" type="string[]">
+  Lista de tags para aplicar ao contato. Tags inexistentes são criadas automaticamente. Máximo de 20 tags por requisição.
+
+  ```json
+  "tags": ["lead-quente", "instagram", "produto-x"]
+  ```
+</ParamField>
+
+<ParamField body="pipeline" type="string">
+  Nome ou ID do pipeline onde o card deve ser criado. Se o pipeline não for encontrado, nenhum card é criado (o contato ainda é salvo).
+</ParamField>
+
+<ParamField body="stage" type="string">
+  Nome ou ID da etapa do pipeline. Se omitido, o card vai para a **primeira etapa** do pipeline.
+</ParamField>
+
+<ParamField body="value" type="number">
+  Valor do negócio em BRL. Aparece no card do pipeline.
+</ParamField>
+
+<ParamField body="origin" type="string">
+  Origem do lead. Valor livre, usado para rastrear a fonte da integração (ex: `"n8n"`, `"typeform"`, `"google-ads"`). Máximo 64 caracteres. Padrão: `"api"`.
+</ParamField>
+
+<ParamField body="product" type="string">
+  Nome do produto de interesse. Se não existir no workspace, é criado automaticamente.
+</ParamField>
+
+<ParamField body="assignedTo" type="string">
+  Nome completo do atendente responsável. Deve corresponder exatamente ao nome de um membro do workspace (case-insensitive).
+</ParamField>
+
+<ParamField body="customFields" type="object">
+  Campos personalizados adicionais. São convertidos em texto e adicionados às notas do contato.
+
+  ```json
+  "customFields": {
+    "Campanha": "Black Friday 2025",
+    "Interesse": "Plano Growth",
+    "Score": "8.5"
+  }
+  ```
+
+  Máximo de 50 campos por requisição. Chaves com até 64 caracteres, valores com até 512 caracteres.
+</ParamField>
+
+## Comportamento de upsert
+
+O endpoint não cria duplicatas. Se um contato com o mesmo `phone` já existir no workspace:
+
+- Os campos `name`, `email` e `notes` são **atualizados** se fornecidos
+- As tags são **adicionadas** (não substituídas)
+- O card do pipeline é **atualizado** se já houver um card aberto para o contato naquele pipeline
+- A resposta retorna `"action": "updated"` em vez de `"action": "created"`
+
+## Resposta de sucesso
+
+<ResponseField name="ok" type="boolean">
+  Sempre `true` em caso de sucesso.
+</ResponseField>
+
+<ResponseField name="action" type="string">
+  `"created"` se um novo contato foi criado, `"updated"` se o contato já existia.
+</ResponseField>
+
+<ResponseField name="contact" type="object">
+  Dados do contato criado ou atualizado.
+  <Expandable title="campos">
+    <ResponseField name="id" type="string">ID único do contato.</ResponseField>
+    <ResponseField name="name" type="string | null">Nome do contato.</ResponseField>
+    <ResponseField name="phone" type="string | null">Telefone normalizado (E.164).</ResponseField>
+    <ResponseField name="email" type="string | null">E-mail do contato.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="card" type="object | null">
+  Card criado ou atualizado no pipeline. `null` se nenhum pipeline foi especificado ou encontrado.
+  <Expandable title="campos">
+    <ResponseField name="id" type="string">ID único do card.</ResponseField>
+    <ResponseField name="stageId" type="string">ID da etapa onde o card foi colocado.</ResponseField>
+    <ResponseField name="origin" type="string">Origem registrada no card.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash Novo lead com pipeline
+curl -X POST https://crm.vistum.com.br/api/v1/leads \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "11999887766",
+    "name": "João Ferreira",
+    "email": "joao@empresa.com",
+    "pipeline": "Vendas",
+    "stage": "Qualificação",
+    "value": 2500,
+    "origin": "landing-page",
+    "tags": ["lead-quente", "formulario-site"],
+    "assignedTo": "Carlos Atendente",
+    "customFields": {
+      "Cidade": "São Paulo",
+      "Interesse": "Plano PRO"
+    }
+  }'
+```
+
+```bash Lead simples (só contato)
+curl -X POST https://crm.vistum.com.br/api/v1/leads \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "21988776655",
+    "name": "Ana Costa",
+    "origin": "whatsapp-link"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 — Criado
+{
+  "ok": true,
+  "action": "created",
+  "contact": {
+    "id": "cnt_cmnl5abc123",
+    "name": "João Ferreira",
+    "phone": "5511999887766",
+    "email": "joao@empresa.com"
+  },
+  "card": {
+    "id": "card_def456ghi",
+    "stageId": "stage_xyz789",
+    "origin": "landing-page"
+  }
+}
+```
+
+```json 200 — Atualizado
+{
+  "ok": true,
+  "action": "updated",
+  "contact": {
+    "id": "cnt_cmnl5abc123",
+    "name": "João Ferreira",
+    "phone": "5511999887766",
+    "email": "joao@empresa.com"
+  },
+  "card": null
+}
+```
+</ResponseExample>

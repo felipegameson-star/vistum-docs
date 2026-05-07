@@ -1,0 +1,71 @@
+---
+title: Autenticação
+description: Como autenticar suas requisições à API do Vistum.
+---
+
+## API Keys
+
+Toda requisição à API do Vistum requer uma **API Key** no header `Authorization`:
+
+```http
+Authorization: Bearer vg_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+### Formato da chave
+
+As chaves seguem o padrão `vg_live_` seguido de 40 caracteres hexadecimais:
+
+```
+vg_live_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
+```
+
+<Warning>
+  A chave é exibida **uma única vez** no momento da criação. Se perdida, revogue e gere uma nova — não é possível recuperar a chave original.
+</Warning>
+
+## Onde gerar sua API Key
+
+1. Acesse **Configurações → Desenvolvedor → API Keys** no CRM
+2. Clique em **Nova API Key**
+3. Defina um nome descritivo e limite de requisições por minuto
+4. Copie e guarde a chave gerada
+
+## Escopos
+
+Cada API Key tem um escopo que define quais operações ela pode realizar:
+
+| Escopo | Permissão |
+|--------|-----------|
+| `leads:write` | Criar e atualizar contatos e cards no pipeline |
+
+Atualmente o único escopo disponível é `leads:write`. Novos escopos serão adicionados em versões futuras.
+
+## Segurança
+
+- **Não exponha sua chave** em código frontend, repositórios públicos ou logs
+- Use **variáveis de ambiente** para armazenar a chave na sua aplicação
+- Configure uma **data de expiração** para chaves de uso temporário
+- **Revogue imediatamente** se suspeitar de comprometimento
+
+## Erros de autenticação
+
+| Código | Causa |
+|--------|-------|
+| `401 Unauthorized` | Chave inválida, ausente ou expirada |
+| `403 Forbidden` | Chave válida, mas sem o escopo necessário |
+| `402 Payment Required` | Plano não inclui acesso à API |
+
+```json Exemplo de resposta 401
+{
+  "error": "Unauthorized",
+  "hint": "Pass a valid API key: Authorization: Bearer <key>"
+}
+```
+
+```json Exemplo de resposta 403
+{
+  "error": "Forbidden",
+  "hint": "This API key does not have the 'leads:write' scope",
+  "scopes": ["outro:escopo"]
+}
+```

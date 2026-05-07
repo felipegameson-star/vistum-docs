@@ -1,0 +1,116 @@
+---
+title: Integração com n8n
+description: Como enviar leads do n8n para o Vistum e receber eventos via webhook.
+---
+
+## Visão geral
+
+Com o n8n você pode:
+
+1. **Enviar leads para o Vistum** — quando um formulário for preenchido, um lead do Facebook Ads chegar, ou qualquer outro gatilho no n8n
+2. **Receber eventos do Vistum** — quando um contato avançar no pipeline, quando uma tag for adicionada, etc.
+
+## Enviar leads do n8n para o Vistum
+
+### 1. Crie a API Key no Vistum
+
+Em **Configurações → API → API Keys**, crie uma nova chave e copie o valor.
+
+### 2. Configure um nó HTTP Request no n8n
+
+No seu workflow n8n, adicione um nó **HTTP Request** com:
+
+| Campo | Valor |
+|-------|-------|
+| Method | POST |
+| URL | `https://crm.vistum.com.br/api/v1/leads` |
+| Authentication | Header Auth |
+| Header Name | `Authorization` |
+| Header Value | `Bearer vg_live_SUA_CHAVE_AQUI` |
+
+### 3. Configure o body
+
+No nó HTTP Request, defina o body como JSON:
+
+```json
+{
+  "phone": "={{ $json.phone }}",
+  "name": "={{ $json.name }}",
+  "email": "={{ $json.email }}",
+  "pipeline": "Vendas",
+  "stage": "Novo Lead",
+  "origin": "n8n",
+  "tags": ["facebook-ads"]
+}
+```
+
+Ajuste as expressões `={{ $json.campo }}` para mapear os campos do nó anterior no seu workflow.
+
+### 4. Trate o retry
+
+Se o nó retornar `429`, configure um nó **Wait** de `{{ $response.headers['Retry-After'] }}` segundos antes de tentar novamente.
+
+## Receber eventos do Vistum no n8n
+
+### 1. Crie um webhook no n8n
+
+No n8n, adicione um nó **Webhook**:
+- Method: POST
+- Authentication: nenhuma (a validação será feita no código)
+- Copie a URL gerada (ex: `https://n8n.seudominio.com/webhook/abc123`)
+
+### 2. Configure o webhook no Vistum
+
+Em **Configurações → API → Webhooks**, crie um novo webhook:
+- URL: cole a URL do n8n
+- Eventos: selecione os eventos desejados
+- Copie o **secret** gerado
+
+### 3. Valide a assinatura (recomendado)
+
+Adicione um nó **Code** após o Webhook no n8n para validar a assinatura:
+
+```javascript
+const crypto = require('crypto');
+
+const signature = $input.first().headers['x-vistum-signature'];
+const rawBody = JSON.stringify($input.first().body);
+const secret = 'SEU_SECRET_AQUI';
+
+const parts = Object.fromEntries(
+  signature.split(',').map(p => p.split('='))
+);
+
+const signedString = `${parts.t}.${rawBody}`;
+const expected = crypto
+  .createHmac('sha256', secret)
+  .update(signedString)
+  .digest('hex');
+
+if (expected !== parts.v1) {
+  throw new Error('Assinatura inválida');
+}
+
+return $input.all();
+```
+
+### 4. Processe o evento
+
+Após a validação, adicione um nó **Switch** para bifurcar por tipo de evento:
+
+```
+event === "lead.created" → criar contato no Google Sheets
+event === "card.moved"   → notificar no Slack
+event === "contact.tag_added" → adicionar ao Mailchimp
+```
+
+## Exemplo completo: lead do Facebook → Vistum → Slack
+
+```
+[Facebook Lead Ads] 
+    → [HTTP Request: POST /api/v1/leads] 
+    → [IF: status 201]
+        → [Slack: "Novo lead: {{name}} ({{phone}})"]
+```
+
+Quando o lead chegar no Vistum e avançar no pipeline, um webhook dispara de volta para o n8n, que notifica o time no Slack.

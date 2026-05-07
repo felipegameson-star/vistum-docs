@@ -1,0 +1,64 @@
+---
+title: Visão Geral
+description: Receba notificações em tempo real quando eventos acontecerem no seu workspace.
+---
+
+## O que são Webhooks
+
+Webhooks são requisições HTTP que o Vistum envia automaticamente para uma URL da sua escolha quando um evento acontece no CRM — por exemplo, quando um novo lead chega, uma mensagem é recebida ou um card muda de etapa.
+
+Diferente de polling (ficar fazendo GET a cada X segundos), webhooks são **push**: você recebe a notificação imediatamente, sem desperdício de requisições.
+
+## Como configurar
+
+<Steps>
+  <Step title="Abra as configurações de Webhooks">
+    Acesse **Configurações → Desenvolvedor → Webhooks** no CRM.
+  </Step>
+  <Step title="Crie um novo webhook">
+    Clique em **Novo Webhook** e preencha:
+    - **URL**: endpoint HTTPS que receberá as notificações
+    - **Eventos**: selecione quais eventos deseja receber
+    - **Descrição**: identificação amigável (ex: `n8n-pipeline`)
+  </Step>
+  <Step title="Copie o secret">
+    O Vistum gera um **secret de assinatura** para cada webhook. Guarde-o — você precisará dele para verificar a autenticidade das requisições.
+  </Step>
+  <Step title="Teste com Ping">
+    Use o botão **Ping** para enviar um evento `test.ping` e confirmar que a URL está recebendo corretamente.
+  </Step>
+</Steps>
+
+## Requisitos da URL
+
+- Deve ser **HTTPS**
+- Deve retornar `2xx` em até **10 segundos**
+- Deve estar acessível publicamente na internet
+
+<Tip>
+  Em desenvolvimento, use [ngrok](https://ngrok.com), [localtunnel](https://localtunnel.me) ou [Webhook.site](https://webhook.site) para expor seu servidor local.
+</Tip>
+
+## Retentativas
+
+Se a URL retornar um erro (status não-2xx) ou não responder em 10 segundos, o Vistum tentará reenviar:
+
+| Tentativa | Aguarda |
+|-----------|---------|
+| 1ª (original) | — |
+| 2ª | 1 minuto |
+| 3ª | 5 minutos |
+| 4ª | 30 minutos |
+| 5ª | 2 horas |
+
+Após **5 falhas consecutivas**, o webhook é **desativado automaticamente**. Corrija o endpoint e reative-o nas configurações.
+
+Você também pode reenviar qualquer delivery manualmente em **Configurações → Webhooks → Deliveries**.
+
+## Planos e limites
+
+| Plano | Webhooks ativos |
+|-------|----------------|
+| Essencial | — |
+| Growth | 5 |
+| PRO | 20 |

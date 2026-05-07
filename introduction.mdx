@@ -1,0 +1,58 @@
+---
+title: Introdução
+description: API pública do Vistum CRM — integre seu CRM com n8n, Zapier, Google Sheets e qualquer sistema externo.
+---
+
+## Bem-vindo à API do Vistum
+
+O Vistum CRM oferece uma API REST para integração com ferramentas externas. Com ela você pode:
+
+- **Criar leads automaticamente** a partir de formulários, planilhas, anúncios e automações
+- **Receber notificações em tempo real** via webhooks quando eventos acontecerem no CRM
+- **Automatizar fluxos comerciais** sem precisar abrir o painel manualmente
+
+<CardGroup cols={2}>
+  <Card title="Primeiros Passos" icon="rocket" href="/quickstart">
+    Configure sua primeira integração em 5 minutos
+  </Card>
+  <Card title="Autenticação" icon="key" href="/authentication">
+    Como gerar e usar sua API Key
+  </Card>
+  <Card title="Criar Lead" icon="user-plus" href="/api-reference/leads">
+    Endpoint principal: POST /api/v1/leads
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/webhooks/overview">
+    Receba eventos do CRM em tempo real
+  </Card>
+</CardGroup>
+
+## Disponibilidade por plano
+
+A API está disponível a partir do plano **Growth**. O plano Essencial não inclui acesso à API.
+
+| Recurso | Essencial | Growth | PRO |
+|---|---|---|---|
+| Acesso à API | — | ✓ | ✓ |
+| API Keys | 0 | 1 | 5 |
+| Webhooks outbound | 0 | 5 | 20 |
+
+## Base URL
+
+Todos os endpoints usam a URL base:
+
+```
+https://crm.vistum.com.br
+```
+
+## Formato das respostas
+
+Todas as respostas são em **JSON** (`Content-Type: application/json`).
+
+Respostas de sucesso retornam `200 OK` ou `201 Created`. Erros seguem o padrão:
+
+```json
+{
+  "error": "Descrição do erro",
+  "hint": "Como corrigir (quando disponível)"
+}
+```

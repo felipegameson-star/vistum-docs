@@ -1,0 +1,121 @@
+---
+title: Primeiros Passos
+description: Envie seu primeiro lead para o Vistum em menos de 5 minutos.
+---
+
+## Pré-requisitos
+
+- Conta no Vistum com plano **Growth** ou **PRO**
+- Uma instância de WhatsApp conectada no workspace
+- Acesso às configurações de **Desenvolvedor** no CRM
+
+## 1. Gere uma API Key
+
+<Steps>
+  <Step title="Abra as Configurações">
+    No CRM, clique em **Configurações → Desenvolvedor → API Keys**.
+  </Step>
+  <Step title="Crie uma nova chave">
+    Clique em **Nova API Key**, dê um nome descritivo (ex: `n8n-producao`) e salve.
+  </Step>
+  <Step title="Copie a chave">
+    A chave é exibida **uma única vez**. Copie e guarde em local seguro.
+
+    Ela tem o formato: `vg_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+  </Step>
+</Steps>
+
+## 2. Envie seu primeiro lead
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/leads \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "11999887766",
+    "name": "Maria Silva",
+    "email": "maria@exemplo.com",
+    "pipeline": "Vendas",
+    "stage": "Novo Lead",
+    "origin": "quickstart"
+  }'
+```
+
+```javascript Node.js
+const res = await fetch("https://crm.vistum.com.br/api/v1/leads", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer vg_live_SUA_CHAVE_AQUI",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    phone: "11999887766",
+    name: "Maria Silva",
+    email: "maria@exemplo.com",
+    pipeline: "Vendas",
+    stage: "Novo Lead",
+    origin: "quickstart",
+  }),
+});
+
+const data = await res.json();
+console.log(data);
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://crm.vistum.com.br/api/v1/leads",
+    headers={
+        "Authorization": "Bearer vg_live_SUA_CHAVE_AQUI",
+        "Content-Type": "application/json",
+    },
+    json={
+        "phone": "11999887766",
+        "name": "Maria Silva",
+        "email": "maria@exemplo.com",
+        "pipeline": "Vendas",
+        "stage": "Novo Lead",
+        "origin": "quickstart",
+    },
+)
+
+print(response.json())
+```
+</CodeGroup>
+
+## 3. Interprete a resposta
+
+```json
+{
+  "ok": true,
+  "action": "created",
+  "contact": {
+    "id": "cnt_abc123",
+    "name": "Maria Silva",
+    "phone": "5511999887766",
+    "email": "maria@exemplo.com"
+  },
+  "card": {
+    "id": "card_xyz789",
+    "stageId": "stage_def456",
+    "origin": "quickstart"
+  }
+}
+```
+
+- `action: "created"` — novo contato e card criados
+- `action: "updated"` — contato já existia, dados atualizados
+
+## Próximos passos
+
+<CardGroup cols={2}>
+  <Card title="Referência completa do endpoint" icon="book" href="/api-reference/leads">
+    Todos os campos disponíveis
+  </Card>
+  <Card title="Receber eventos com Webhooks" icon="webhook" href="/webhooks/overview">
+    Saiba quando um lead avança no pipeline
+  </Card>
+</CardGroup>

@@ -1,0 +1,164 @@
+---
+title: Eventos
+description: Lista de todos os eventos que o Vistum pode enviar para o seu webhook.
+---
+
+## Eventos disponíveis
+
+| Evento | Disparado quando |
+|--------|-----------------|
+| `lead.created` | Um novo lead é criado via API (`POST /api/v1/leads`) |
+| `contact.created` | Um novo contato chega pelo WhatsApp |
+| `message.received` | Uma mensagem é recebida de um contato |
+| `contact.tag_added` | Uma tag é adicionada a um contato |
+| `card.created` | Um card é criado em um pipeline |
+| `card.moved` | Um card é movido entre etapas do pipeline |
+
+<Note>
+  O evento `test.ping` é enviado pelo botão **Ping** nas configurações. Não aparece no histórico de deliveries como evento de negócio.
+</Note>
+
+---
+
+## Estrutura do payload
+
+Toda requisição de webhook tem a seguinte estrutura base:
+
+```json
+{
+  "event": "lead.created",
+  "workspaceId": "wks_abc123",
+  "timestamp": "2025-05-07T14:30:00.000Z",
+  "data": { ... }
+}
+```
+
+Os headers incluem:
+
+```http
+X-Vistum-Event: lead.created
+X-Vistum-Delivery: whk_xyz789
+X-Vistum-Signature: t=1746666000,v1=a1b2c3d4e5f6...
+Content-Type: application/json
+```
+
+---
+
+## Detalhes por evento
+
+### lead.created
+
+Disparado quando um novo contato é criado via `POST /api/v1/leads`.
+
+```json
+{
+  "event": "lead.created",
+  "workspaceId": "wks_abc123",
+  "timestamp": "2025-05-07T14:30:00.000Z",
+  "data": {
+    "contact_id": "cnt_def456",
+    "name": "João Ferreira",
+    "phone": "5511999887766",
+    "email": "joao@empresa.com"
+  }
+}
+```
+
+---
+
+### contact.created
+
+Disparado quando um contato novo entra via WhatsApp pela primeira vez.
+
+```json
+{
+  "event": "contact.created",
+  "workspaceId": "wks_abc123",
+  "timestamp": "2025-05-07T14:30:00.000Z",
+  "data": {
+    "contact_id": "cnt_ghi789",
+    "name": "Maria Costa",
+    "phone": "5521988776655",
+    "email": null
+  }
+}
+```
+
+---
+
+### message.received
+
+Disparado a cada mensagem recebida de um contato.
+
+```json
+{
+  "event": "message.received",
+  "workspaceId": "wks_abc123",
+  "timestamp": "2025-05-07T14:30:00.000Z",
+  "data": {
+    "contact_id": "cnt_ghi789",
+    "message_id": "msg_jkl012",
+    "type": "text",
+    "body": "Olá, gostaria de saber mais sobre os planos"
+  }
+}
+```
+
+---
+
+### contact.tag_added
+
+Disparado quando uma tag é adicionada a um contato.
+
+```json
+{
+  "event": "contact.tag_added",
+  "workspaceId": "wks_abc123",
+  "timestamp": "2025-05-07T14:30:00.000Z",
+  "data": {
+    "contact_id": "cnt_ghi789",
+    "tag_name": "lead-quente"
+  }
+}
+```
+
+---
+
+### card.created
+
+Disparado quando um card é adicionado a um pipeline.
+
+```json
+{
+  "event": "card.created",
+  "workspaceId": "wks_abc123",
+  "timestamp": "2025-05-07T14:30:00.000Z",
+  "data": {
+    "card_id": "card_mno345",
+    "contact_id": "cnt_ghi789",
+    "pipeline_id": "pipe_pqr678",
+    "stage_id": "stage_stu901"
+  }
+}
+```
+
+---
+
+### card.moved
+
+Disparado quando um card é arrastado para outra etapa do pipeline.
+
+```json
+{
+  "event": "card.moved",
+  "workspaceId": "wks_abc123",
+  "timestamp": "2025-05-07T14:30:00.000Z",
+  "data": {
+    "card_id": "card_mno345",
+    "contact_id": "cnt_ghi789",
+    "pipeline_id": "pipe_pqr678",
+    "from_stage_id": "stage_stu901",
+    "to_stage_id": "stage_vwx234"
+  }
+}
+```

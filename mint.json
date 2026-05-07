@@ -1,0 +1,102 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Vistum CRM",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#6366f1",
+    "light": "#818cf8",
+    "dark": "#4f46e5",
+    "anchors": {
+      "from": "#6366f1",
+      "to": "#8b5cf6"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Central de Ajuda",
+      "url": "https://help.vistum.com.br"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Acessar CRM",
+    "url": "https://crm.vistum.com.br"
+  },
+  "tabs": [
+    {
+      "name": "Referência da API",
+      "url": "api-reference"
+    },
+    {
+      "name": "Webhooks",
+      "url": "webhooks"
+    },
+    {
+      "name": "Guias",
+      "url": "guides"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Status",
+      "icon": "circle-check",
+      "url": "https://crm.vistum.com.br/api/health"
+    },
+    {
+      "name": "Suporte",
+      "icon": "envelope",
+      "url": "mailto:suporte@vistum.com.br"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Início",
+      "pages": [
+        "introduction",
+        "quickstart",
+        "authentication",
+        "rate-limits",
+        "errors"
+      ]
+    },
+    {
+      "group": "Referência da API",
+      "pages": [
+        "api-reference/leads"
+      ]
+    },
+    {
+      "group": "Webhooks",
+      "pages": [
+        "webhooks/overview",
+        "webhooks/events",
+        "webhooks/verification"
+      ]
+    },
+    {
+      "group": "Guias Práticos",
+      "pages": [
+        "guides/n8n-integration",
+        "guides/automation-webhook"
+      ]
+    },
+    {
+      "group": "Planos e Limites",
+      "pages": [
+        "plans/limits"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "instagram": "https://instagram.com/vistumcrm"
+  },
+  "api": {
+    "baseUrl": "https://crm.vistum.com.br",
+    "auth": {
+      "method": "bearer"
+    }
+  }
+}

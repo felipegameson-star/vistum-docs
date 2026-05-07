@@ -1,0 +1,10 @@
+# Internal docs — not for publication
+INVENTARIO.md
+PLANO_PUBLICACAO.md
+
+# Screenshots contain real customer data — excluded until anonymized
+screenshots/
+
+# OS
+.DS_Store
+Thumbs.db

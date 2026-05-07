@@ -1,0 +1,101 @@
+---
+title: Erros
+description: Referência de códigos de erro da API do Vistum.
+---
+
+## Formato padrão
+
+Todas as respostas de erro seguem o mesmo formato:
+
+```json
+{
+  "error": "Descrição do erro",
+  "hint": "Como corrigir (quando disponível)"
+}
+```
+
+## Códigos HTTP
+
+| Código | Significado |
+|--------|-------------|
+| `400 Bad Request` | Corpo da requisição inválido ou campo obrigatório ausente |
+| `401 Unauthorized` | API Key ausente, inválida ou expirada |
+| `402 Payment Required` | Limite do plano atingido ou recurso não disponível no plano atual |
+| `403 Forbidden` | API Key sem o escopo necessário |
+| `422 Unprocessable Entity` | Requisição válida mas não pode ser executada (ex: workspace sem WhatsApp) |
+| `429 Too Many Requests` | Rate limit excedido |
+| `500 Internal Server Error` | Erro interno do servidor |
+
+## Erros comuns
+
+### 400 — phone is required
+
+```json
+{ "error": "phone is required" }
+```
+
+O campo `phone` é obrigatório em todas as requisições.
+
+### 400 — Invalid phone number
+
+```json
+{ "error": "Invalid phone number — minimum 10 digits" }
+```
+
+O número de telefone deve ter pelo menos 10 dígitos. Aceita formato E.164 ou DDD+número brasileiro.
+
+### 401 — API key expired
+
+```json
+{
+  "error": "API key expired",
+  "expiredAt": "2025-04-01T00:00:00.000Z"
+}
+```
+
+A chave atingiu a data de expiração configurada. Gere uma nova chave.
+
+### 402 — Lead limit reached
+
+```json
+{ "error": "Lead limit reached for this workspace's plan" }
+```
+
+O workspace atingiu o limite de leads do plano atual. Veja a tabela de limites ou faça upgrade.
+
+### 402 — API access not available
+
+```json
+{ "error": "API access not available on your plan. Upgrade to Growth or PRO." }
+```
+
+O acesso à API requer plano **Growth** ou superior.
+
+### 402 — Subscription inactive
+
+```json
+{ "error": "Subscription inactive" }
+```
+
+A assinatura do workspace está inativa (cancelada, suspensa ou trial expirado).
+
+### 422 — No WhatsApp instance
+
+```json
+{ "error": "Workspace has no WhatsApp instance configured" }
+```
+
+Para criar leads via API, o workspace precisa ter pelo menos uma instância de WhatsApp conectada.
+
+## Retry seguro
+
+Os seguintes erros **são seguros para retry**:
+
+- `429 Too Many Requests` — aguarde o `Retry-After` antes de tentar novamente
+- `500 Internal Server Error` — use backoff exponencial (1s, 2s, 4s...)
+
+Os seguintes erros **não devem ser retentados** sem corrigir o problema:
+
+- `400` — corrija o payload
+- `401`, `402`, `403` — corrija a autenticação ou plano
+- `422` — verifique a configuração do workspace

@@ -1,0 +1,101 @@
+---
+title: Enviar webhook por automação
+description: Use a ação webhook_out para notificar sistemas externos quando eventos acontecerem no seu CRM.
+---
+
+## Como funciona
+
+A ação **Enviar Webhook** em uma automação faz uma chamada HTTP POST para qualquer URL externa quando o fluxo chega naquele nó. É diferente dos webhooks outbound (que disparam por eventos do CRM) — aqui você tem controle total de quando o disparo acontece dentro do fluxo.
+
+## Configurar a ação
+
+<Steps>
+  <Step title="Abra o editor de automações">
+    Acesse **Automações** → crie ou edite uma automação existente.
+  </Step>
+  <Step title="Adicione um nó Ação">
+    Clique em **+** no canvas e selecione **Ação** (nó laranja).
+  </Step>
+  <Step title="Selecione Enviar Webhook">
+    No campo **Tipo de ação**, escolha **Enviar webhook**.
+  </Step>
+  <Step title="Configure a URL">
+    Cole a URL de destino (HTTPS obrigatório).
+  </Step>
+  <Step title="Personalize o body (opcional)">
+    Use variáveis para incluir dados do contexto:
+
+    ```json
+    {
+      "contato": "{{contact.name}}",
+      "telefone": "{{contact.phone}}",
+      "etapa": "{{pipeline.stage}}"
+    }
+    ```
+  </Step>
+</Steps>
+
+## Variáveis disponíveis
+
+| Variável | Descrição |
+|----------|-----------|
+| `{{contact.name}}` | Nome do contato |
+| `{{contact.phone}}` | Telefone (formato E.164) |
+| `{{contact.email}}` | Email do contato |
+| `{{message.type}}` | Tipo da mensagem que disparou |
+| `{{pipeline.stage}}` | Nome da etapa do pipeline |
+
+## Payload padrão (sem body customizado)
+
+```json
+{
+  "event": "automation.webhook",
+  "automationId": "auto_xxx",
+  "workspaceId": "wks_xxx",
+  "timestamp": "2025-05-07T14:30:00.000Z",
+  "contact": {
+    "id": "cnt_xxx",
+    "name": "Nome do Contato",
+    "phone": "5511999887766"
+  },
+  "pipeline": {
+    "cardId": "card_xxx",
+    "fromStageId": "stage_xxx",
+    "toStageId": "stage_yyy"
+  }
+}
+```
+
+## Exemplos práticos
+
+### Notificar n8n quando card mudar de etapa
+
+1. Gatilho: **Mudança de etapa no pipeline** → etapa `Proposta Enviada`
+2. Nó Ação: Enviar Webhook → URL do n8n
+3. Body:
+   ```json
+   {
+     "evento": "proposta_enviada",
+     "cliente": "{{contact.name}}",
+     "telefone": "{{contact.phone}}"
+   }
+   ```
+
+### Criar registro no Google Sheets via n8n
+
+1. Gatilho: **Novo contato criado**
+2. Nó Ação: Enviar Webhook → URL do workflow n8n de planilha
+3. O n8n recebe os dados e adiciona uma linha na planilha
+
+### Alertar o time no Slack quando negócio for ganho
+
+1. Gatilho: **Negócio marcado como ganho**
+2. Nó Ação: Enviar Webhook → URL do n8n
+3. O n8n posta mensagem no Slack: `🎉 {{contact.name}} fechou negócio!`
+
+## Limites e comportamento
+
+- **Timeout**: 10 segundos por chamada
+- **Sem retry**: se a URL falhar, o nó de automação registra o erro mas o fluxo continua
+- **Log**: cada execução aparece no histórico com URL mascarada, HTTP status e tempo
+- **SSRF**: URLs de redes privadas são bloqueadas automaticamente (localhost, IPs internos)

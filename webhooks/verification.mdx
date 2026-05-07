@@ -1,0 +1,156 @@
+---
+title: Verificação de Assinatura
+description: Como verificar que as requisições de webhook realmente vieram do Vistum.
+---
+
+## Por que verificar
+
+Qualquer pessoa pode enviar uma requisição POST para a sua URL de webhook. A assinatura HMAC-SHA256 garante que a requisição veio do Vistum e que o payload não foi adulterado.
+
+<Warning>
+  Sempre verifique a assinatura antes de processar um evento. Ignorar esta etapa expõe sua integração a ataques de replay e spoofing.
+</Warning>
+
+## Como funciona
+
+Cada requisição de webhook inclui o header:
+
+```http
+X-Vistum-Signature: t=1746666000,v1=a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
+```
+
+- `t` — Unix timestamp da entrega (em segundos)
+- `v1` — HMAC-SHA256 em hex
+
+**String assinada:**
+```
+{timestamp}.{body_json_raw}
+```
+
+O HMAC é calculado com o **secret do webhook** (gerado na criação) como chave.
+
+## Verificação por linguagem
+
+<CodeGroup>
+```javascript Node.js
+import crypto from "crypto"
+
+function verifyWebhook(rawBody, signature, secret) {
+  const parts = Object.fromEntries(
+    signature.split(",").map(p => p.split("="))
+  )
+  const timestamp = parts["t"]
+  const receivedHmac = parts["v1"]
+
+  if (!timestamp || !receivedHmac) return false
+
+  // Rejeita eventos com mais de 5 minutos (proteção contra replay)
+  const age = Math.abs(Date.now() / 1000 - Number(timestamp))
+  if (age > 300) return false
+
+  const signedString = `${timestamp}.${rawBody}`
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(signedString)
+    .digest("hex")
+
+  return crypto.timingSafeEqual(
+    Buffer.from(expected),
+    Buffer.from(receivedHmac)
+  )
+}
+
+// Express / Next.js
+app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
+  const signature = req.headers["x-vistum-signature"] ?? ""
+  const valid = verifyWebhook(req.body.toString(), signature, process.env.WEBHOOK_SECRET)
+
+  if (!valid) return res.status(401).json({ error: "Invalid signature" })
+
+  const event = JSON.parse(req.body)
+  console.log("Evento recebido:", event.event)
+
+  res.json({ ok: true })
+})
+```
+
+```python Python
+import hashlib
+import hmac
+import time
+
+def verify_webhook(raw_body: bytes, signature: str, secret: str) -> bool:
+    parts = dict(p.split("=", 1) for p in signature.split(","))
+    timestamp = parts.get("t")
+    received_hmac = parts.get("v1")
+
+    if not timestamp or not received_hmac:
+        return False
+
+    # Rejeita eventos com mais de 5 minutos
+    age = abs(time.time() - float(timestamp))
+    if age > 300:
+        return False
+
+    signed_string = f"{timestamp}.{raw_body.decode('utf-8')}"
+    expected = hmac.new(
+        secret.encode("utf-8"),
+        signed_string.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(expected, received_hmac)
+
+# Flask
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    signature = request.headers.get("X-Vistum-Signature", "")
+    if not verify_webhook(request.data, signature, os.environ["WEBHOOK_SECRET"]):
+        return {"error": "Invalid signature"}, 401
+
+    event = request.json
+    print(f"Evento recebido: {event['event']}")
+    return {"ok": True}
+```
+
+```php PHP
+function verifyWebhook(string $rawBody, string $signature, string $secret): bool {
+    $parts = [];
+    foreach (explode(',', $signature) as $part) {
+        [$key, $val] = explode('=', $part, 2);
+        $parts[$key] = $val;
+    }
+
+    if (empty($parts['t']) || empty($parts['v1'])) return false;
+
+    // Rejeita eventos com mais de 5 minutos
+    if (abs(time() - (int)$parts['t']) > 300) return false;
+
+    $signedString = $parts['t'] . '.' . $rawBody;
+    $expected = hash_hmac('sha256', $signedString, $secret);
+
+    return hash_equals($expected, $parts['v1']);
+}
+```
+</CodeGroup>
+
+## Rotação do secret
+
+Se o seu secret de webhook for comprometido, você pode rotacioná-lo sem interromper as entregas:
+
+1. Acesse **Configurações → Webhooks → [seu webhook] → Rotacionar Secret**
+2. Copie o novo secret
+3. Atualize a variável de ambiente na sua aplicação
+4. Faça um deploy da sua aplicação
+
+O Vistum passa a assinar com o novo secret imediatamente após a rotação.
+
+## Proteção contra replay
+
+Implemente sempre a verificação de timestamp para rejeitar requisições antigas:
+
+```
+| Date.now() / 1000 - timestamp | > 300 → REJEITAR
+```
+
+Isso previne que um atacante reenvie uma requisição capturada anteriormente.

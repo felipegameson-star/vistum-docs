@@ -1,0 +1,63 @@
+---
+title: Rate Limits
+description: Limites de requisições por minuto na API do Vistum.
+---
+
+## Como funciona
+
+A API do Vistum aplica dois níveis de rate limit:
+
+### 1. Limite por IP (pré-autenticação)
+
+Para proteger a infraestrutura, todas as requisições ao endpoint `/api/v1/leads` estão sujeitas a um limite de **60 req/min por IP** antes mesmo de validar a chave.
+
+Este limite existe para prevenir ataques de força bruta nas chaves de API.
+
+### 2. Limite por API Key
+
+Cada API Key tem seu próprio limite configurável, definido no momento da criação:
+
+| Configuração | Valor padrão | Mínimo | Máximo |
+|---|---|---|---|
+| Requisições por minuto | 100 | 1 | 1.000 |
+
+Você pode alterar o limite de uma chave em **Configurações → Desenvolvedor → API Keys**.
+
+## Headers de resposta
+
+Toda resposta da API inclui headers informando o estado do rate limit:
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 87
+X-RateLimit-Reset: 1746666000
+```
+
+| Header | Descrição |
+|--------|-----------|
+| `X-RateLimit-Limit` | Limite total de requisições por minuto |
+| `X-RateLimit-Remaining` | Requisições restantes na janela atual |
+| `X-RateLimit-Reset` | Unix timestamp de quando a janela reinicia |
+
+## Quando o limite é excedido
+
+A API retorna `429 Too Many Requests` com o header `Retry-After`:
+
+```json
+{
+  "error": "Rate limit exceeded",
+  "resetAt": "2025-05-07T14:30:00.000Z"
+}
+```
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 42
+```
+
+## Boas práticas
+
+- Implemente **retry com backoff exponencial** em caso de 429
+- Monitore o header `X-RateLimit-Remaining` para antecipar throttling
+- Para volumes altos, use **filas** (BullMQ, n8n Queue, etc.) ao invés de chamadas em paralelo
+- Considere aumentar o limite da chave se sua integração exige mais de 100 req/min
