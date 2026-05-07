@@ -1,0 +1,119 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Vistum CRM",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#6366f1",
+    "light": "#818cf8",
+    "dark": "#4f46e5"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Início",
+        "groups": [
+          {
+            "group": "Início",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "authentication",
+              "rate-limits",
+              "errors"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Referência da API",
+        "groups": [
+          {
+            "group": "Referência da API",
+            "pages": [
+              "api-reference/leads"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Webhooks",
+        "groups": [
+          {
+            "group": "Webhooks",
+            "pages": [
+              "webhooks/overview",
+              "webhooks/events",
+              "webhooks/verification"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guias",
+        "groups": [
+          {
+            "group": "Guias Práticos",
+            "pages": [
+              "guides/n8n-integration",
+              "guides/automation-webhook"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Planos e Limites",
+        "groups": [
+          {
+            "group": "Planos e Limites",
+            "pages": [
+              "plans/limits"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Status",
+          "href": "https://crm.vistum.com.br/api/health",
+          "icon": "circle-check"
+        },
+        {
+          "anchor": "Suporte",
+          "href": "mailto:suporte@vistum.com.br",
+          "icon": "envelope"
+        }
+      ]
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Central de Ajuda",
+        "href": "https://help.vistum.com.br"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Acessar CRM",
+      "href": "https://crm.vistum.com.br"
+    }
+  },
+  "api": {
+    "baseUrl": "https://crm.vistum.com.br",
+    "auth": {
+      "method": "bearer"
+    }
+  },
+  "footer": {
+    "socials": {
+      "instagram": "https://instagram.com/vistumcrm"
+    }
+  }
+}
