@@ -41,15 +41,15 @@ Diferente de polling (ficar fazendo GET a cada X segundos), webhooks são **push
 
 ## Retentativas
 
-Se a URL retornar um erro (status não-2xx) ou não responder em 10 segundos, o Vistum tentará reenviar:
+Se a URL retornar um erro (status não-2xx) ou não responder em 10 segundos, o Vistum tentará reenviar automaticamente com **backoff exponencial** (via BullMQ):
 
-| Tentativa | Aguarda |
-|-----------|---------|
+| Tentativa | Aguarda (aproximado) |
+|-----------|----------------------|
 | 1ª (original) | — |
-| 2ª | 1 minuto |
-| 3ª | 5 minutos |
-| 4ª | 30 minutos |
-| 5ª | 2 horas |
+| 2ª | ~5 segundos |
+| 3ª | ~10 segundos |
+| 4ª | ~20 segundos |
+| 5ª | ~40 segundos |
 
 Após **5 falhas consecutivas**, o webhook é **desativado automaticamente**. Corrija o endpoint e reative-o nas configurações.
 
