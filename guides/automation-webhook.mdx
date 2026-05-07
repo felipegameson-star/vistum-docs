@@ -52,7 +52,7 @@ A ação **Enviar Webhook** em uma automação faz uma chamada HTTP POST para qu
   "event": "automation.webhook",
   "automationId": "auto_xxx",
   "workspaceId": "wks_xxx",
-  "timestamp": "2025-05-07T14:30:00.000Z",
+  "timestamp": 1715093400,
   "contact": {
     "id": "cnt_xxx",
     "name": "Nome do Contato",
@@ -62,9 +62,15 @@ A ação **Enviar Webhook** em uma automação faz uma chamada HTTP POST para qu
     "cardId": "card_xxx",
     "fromStageId": "stage_xxx",
     "toStageId": "stage_yyy"
-  }
+  },
+  "trigger": "message_received",
+  "vars": {}
 }
 ```
+
+<Note>
+  `timestamp` é um **Unix timestamp inteiro** (segundos). Converta com `new Date(timestamp * 1000)` em JS ou `datetime.fromtimestamp(timestamp)` em Python.
+</Note>
 
 ## Exemplos práticos
 
