@@ -92,11 +92,36 @@ Disparado quando um contato novo é criado manualmente no CRM.
 
 ### message.received
 
-Disponível para subscrição. O dispatch deste evento será ativado em versão futura do CRM.
+Disparado quando uma mensagem inbound é recebida de um contato — via WhatsApp Evolution API ou WhatsApp Cloud API.
 
 <Note>
-  `message.received` já pode ser selecionado nas configurações de webhook, mas o disparo automático ainda não está ativo. Inscreva-se agora para receber os eventos quando forem habilitados.
+  Apenas mensagens recebidas de contatos reais (não grupos, não mensagens enviadas pelo agente). O payload não inclui o conteúdo da mensagem por privacidade — use o `message_id` para buscá-la via API se necessário.
 </Note>
+
+```json
+{
+  "event": "message.received",
+  "workspace_id": "wks_abc123",
+  "timestamp": "2026-05-08T12:00:00.000Z",
+  "contact_id": "cnt_ghi789",
+  "contact_name": "João Silva",
+  "phone": "5511999887766",
+  "message_id": "3EB0123456789ABCDEF0",
+  "type": "text",
+  "instance_id": "inst_xyz123"
+}
+```
+
+O campo `type` indica o tipo da mensagem:
+
+| Valor | Descrição |
+|-------|-----------|
+| `text` | Mensagem de texto simples |
+| `imageMessage` | Imagem |
+| `audioMessage` | Áudio |
+| `videoMessage` | Vídeo |
+| `documentMessage` | Documento |
+| `stickerMessage` | Sticker |
 
 ---
 
