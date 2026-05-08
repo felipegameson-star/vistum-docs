@@ -102,11 +102,32 @@ Disponível para subscrição. O dispatch deste evento será ativado em versão 
 
 ### contact.tag_added
 
-Disponível para subscrição. O dispatch deste evento será ativado em versão futura do CRM.
+Disparado quando uma tag é adicionada a um contato — via painel, automação, API ou middleware.
 
-<Note>
-  `contact.tag_added` já pode ser selecionado nas configurações de webhook, mas o disparo automático ainda não está ativo.
-</Note>
+```json
+{
+  "event": "contact.tag_added",
+  "workspace_id": "wks_abc123",
+  "timestamp": "2026-05-08T00:20:19.000Z",
+  "contact_id": "cnt_xyz789",
+  "contact_name": "João Silva",
+  "phone": "5511999887766",
+  "tag": {
+    "id": "tag_abc123",
+    "name": "Lead Qualificado"
+  },
+  "source": "manual"
+}
+```
+
+O campo `source` indica a origem da adição:
+
+| Valor | Origem |
+|-------|--------|
+| `manual` | Painel do CRM (ContactPanel) |
+| `automation` | Nó add\_tag em automação |
+| `api` | API externa (`/api/v1/leads` ou middleware) |
+| `import` | Importação em lote |
 
 ---
 
