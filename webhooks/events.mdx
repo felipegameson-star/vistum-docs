@@ -9,10 +9,14 @@ description: Lista de todos os eventos que o Vistum pode enviar para o seu webho
 |--------|-----------------|
 | `lead.created` | Um novo lead é criado via API (`POST /api/v1/leads`) |
 | `contact.created` | Um novo contato chega pelo WhatsApp |
+| `contact.updated` | Dados de um contato são atualizados (nome, email, etc.) |
 | `message.received` | Uma mensagem é recebida de um contato |
 | `contact.tag_added` | Uma tag é adicionada a um contato |
+| `contact.tag_removed` | Uma tag é removida de um contato |
 | `card.created` | Um card é criado em um pipeline |
 | `card.moved` | Um card é movido entre etapas do pipeline |
+| `card.won` | Um card é marcado como ganho |
+| `card.lost` | Um card é marcado como perdido |
 
 <Note>
   O evento `test.ping` é enviado pelo botão **Ping** nas configurações. Não aparece no histórico de deliveries como evento de negócio.
@@ -108,7 +112,8 @@ Disparado quando uma mensagem inbound é recebida de um contato — via WhatsApp
   "phone": "5511999887766",
   "message_id": "3EB0123456789ABCDEF0",
   "type": "text",
-  "instance_id": "inst_xyz123"
+  "instance_id": "inst_xyz123",
+  "conversation_id": "conv_abc456"
 }
 ```
 
@@ -191,3 +196,91 @@ Disparado quando um card é movido para outra etapa do pipeline.
   "name": "João Ferreira"
 }
 ```
+
+---
+
+### contact.updated
+
+Disparado quando os dados de um contato são atualizados via painel do CRM (nome, email, empresa, telefone adicional, etc.).
+
+```json
+{
+  "event": "contact.updated",
+  "workspace_id": "wks_abc123",
+  "timestamp": "2026-05-08T15:30:00.000Z",
+  "contact_id": "cnt_ghi789",
+  "contact_name": "João Silva",
+  "phone": "5511999887766",
+  "email": "joao@empresa.com"
+}
+```
+
+---
+
+### contact.tag_removed
+
+Disparado quando uma tag é removida de um contato — via painel, automação ou API.
+
+```json
+{
+  "event": "contact.tag_removed",
+  "workspace_id": "wks_abc123",
+  "timestamp": "2026-05-08T15:30:00.000Z",
+  "contact_id": "cnt_xyz789",
+  "contact_name": "João Silva",
+  "phone": "5511999887766",
+  "tag": {
+    "id": "tag_abc123",
+    "name": "Lead Qualificado"
+  },
+  "source": "manual"
+}
+```
+
+O campo `source` tem os mesmos valores de `contact.tag_added` (`manual`, `automation`, `api`, `import`).
+
+---
+
+### card.won
+
+Disparado quando um card é marcado como **ganho** no pipeline.
+
+```json
+{
+  "event": "card.won",
+  "workspace_id": "wks_abc123",
+  "timestamp": "2026-05-08T15:30:00.000Z",
+  "card_id": "card_mno345",
+  "stage_id": "stage_stu901",
+  "pipeline_id": "pipe_pqr678",
+  "contact_id": "cnt_ghi789",
+  "name": "João Ferreira",
+  "value": 1500.00,
+  "closed_at": "2026-05-08T15:30:00.000Z"
+}
+```
+
+---
+
+### card.lost
+
+Disparado quando um card é marcado como **perdido** no pipeline.
+
+```json
+{
+  "event": "card.lost",
+  "workspace_id": "wks_abc123",
+  "timestamp": "2026-05-08T15:30:00.000Z",
+  "card_id": "card_mno345",
+  "stage_id": "stage_stu901",
+  "pipeline_id": "pipe_pqr678",
+  "contact_id": "cnt_ghi789",
+  "name": "João Ferreira",
+  "lost_reason": "Preço fora do orçamento",
+  "closed_at": "2026-05-08T15:30:00.000Z"
+}
+```
+
+<Note>
+  `lost_reason` é `null` quando o motivo de perda não foi preenchido.
+</Note>
