@@ -1,0 +1,258 @@
+---
+title: Plataformas de Checkout
+description: Referência técnica para conectar Hotmart, Kiwify, Eduzz, Braip, Monetizze, Perfect Pay e Kirvano ao Vistum.
+---
+
+## Como funciona
+
+As sete plataformas abaixo se conectam ao Vistum pelo **mesmo mecanismo inbound**: o gatilho de automação **"Webhook recebido"** gera uma URL única + token, a plataforma faz POST nessa URL e a automação faz o **field mapping** do payload. Veja o mecanismo completo em [Webhooks de Entrada](/webhooks/inbound).
+
+As diferenças entre plataformas são apenas o **nome do evento** (compra aprovada / reembolso) e o **formato do payload**. Os exemplos abaixo são representativos — **o mapeamento exato é definido na automação**, conforme o payload real que a plataforma enviar.
+
+<Warning>
+  Os nomes de campos e a estrutura podem variar entre versões e configurações de cada plataforma. Sempre confira o payload real recebido (use o histórico de execuções da automação ou uma ferramenta como [Webhook.site](https://webhook.site) durante a configuração) antes de finalizar o mapeamento.
+</Warning>
+
+## Eventos a configurar
+
+| Plataforma | Evento "compra aprovada" | Evento "reembolso / cancelamento" |
+|------------|--------------------------|-----------------------------------|
+| Hotmart | Compra aprovada (`PURCHASE_APPROVED`) | Reembolso / chargeback (`PURCHASE_REFUNDED`, `PURCHASE_CHARGEBACK`) |
+| Kiwify | Compra aprovada (`order_approved` / `paid`) | Reembolso (`order_refunded`) |
+| Eduzz | Fatura paga | Fatura reembolsada / cancelada |
+| Braip | Pagamento aprovado | Reembolso / estorno |
+| Monetizze | Venda aprovada | Reembolso / cancelamento |
+| Perfect Pay | Venda aprovada (`approved`) | Reembolso / estorno (`refunded`) |
+| Kirvano | Compra aprovada (`SALE_APPROVED`) | Reembolso (`SALE_REFUNDED`) |
+
+<Note>
+  Configure, em cada plataforma, o disparo do webhook **apontando para a URL do gatilho** da sua automação. O nome exato do evento aparece no painel de webhooks/notificações de cada plataforma.
+</Note>
+
+## Payloads e mapeamento por plataforma
+
+<AccordionGroup>
+  <Accordion title="Hotmart" icon="fire">
+    Payload representativo:
+
+    ```json
+    {
+      "event": "PURCHASE_APPROVED",
+      "data": {
+        "buyer": {
+          "name": "João Ferreira",
+          "email": "joao@empresa.com",
+          "checkout_phone": "5511999887766"
+        },
+        "product": { "name": "Curso Avançado" },
+        "purchase": {
+          "status": "APPROVED",
+          "price": { "value": 497.00, "currency_value": "BRL" }
+        }
+      }
+    }
+    ```
+
+    Mapeamento sugerido:
+
+    | Campo Vistum | Origem |
+    |--------------|--------|
+    | Nome | `data.buyer.name` |
+    | E-mail | `data.buyer.email` |
+    | Telefone | `data.buyer.checkout_phone` |
+    | Produto | `data.product.name` |
+    | Valor | `data.purchase.price.value` |
+    | Status | `event` / `data.purchase.status` |
+  </Accordion>
+
+  <Accordion title="Kiwify" icon="leaf">
+    Payload representativo:
+
+    ```json
+    {
+      "order_status": "paid",
+      "Customer": {
+        "full_name": "Ana Costa",
+        "email": "ana@email.com",
+        "mobile": "5521988776655"
+      },
+      "Product": { "product_name": "Mentoria Premium" },
+      "Commissions": { "charge_amount": 1997.00 }
+    }
+    ```
+
+    Mapeamento sugerido:
+
+    | Campo Vistum | Origem |
+    |--------------|--------|
+    | Nome | `Customer.full_name` |
+    | E-mail | `Customer.email` |
+    | Telefone | `Customer.mobile` |
+    | Produto | `Product.product_name` |
+    | Valor | `Commissions.charge_amount` |
+    | Status | `order_status` |
+  </Accordion>
+
+  <Accordion title="Eduzz" icon="graduation-cap">
+    Payload representativo:
+
+    ```json
+    {
+      "event": "invoice_paid",
+      "data": {
+        "customer": {
+          "name": "Carlos Souza",
+          "email": "carlos@email.com",
+          "cel": "5531987654321"
+        },
+        "product": { "name": "Plano Anual" },
+        "amount": 890.00,
+        "status": "paid"
+      }
+    }
+    ```
+
+    Mapeamento sugerido:
+
+    | Campo Vistum | Origem |
+    |--------------|--------|
+    | Nome | `data.customer.name` |
+    | E-mail | `data.customer.email` |
+    | Telefone | `data.customer.cel` |
+    | Produto | `data.product.name` |
+    | Valor | `data.amount` |
+    | Status | `data.status` / `event` |
+  </Accordion>
+
+  <Accordion title="Braip" icon="bag-shopping">
+    Payload representativo:
+
+    ```json
+    {
+      "trans_status": "pago",
+      "client_name": "Mariana Lima",
+      "client_email": "mariana@email.com",
+      "client_cel": "5541999112233",
+      "product_name": "Combo Completo",
+      "trans_value": "297.00"
+    }
+    ```
+
+    Mapeamento sugerido:
+
+    | Campo Vistum | Origem |
+    |--------------|--------|
+    | Nome | `client_name` |
+    | E-mail | `client_email` |
+    | Telefone | `client_cel` |
+    | Produto | `product_name` |
+    | Valor | `trans_value` |
+    | Status | `trans_status` |
+  </Accordion>
+
+  <Accordion title="Monetizze" icon="money-bill">
+    Payload representativo:
+
+    ```json
+    {
+      "venda": {
+        "status": { "descricao": "Finalizada" },
+        "valor": 347.00
+      },
+      "comprador": {
+        "nome": "Pedro Alves",
+        "email": "pedro@email.com",
+        "telefone": "5551988221133"
+      },
+      "produto": { "nome": "Treinamento Pro" }
+    }
+    ```
+
+    Mapeamento sugerido:
+
+    | Campo Vistum | Origem |
+    |--------------|--------|
+    | Nome | `comprador.nome` |
+    | E-mail | `comprador.email` |
+    | Telefone | `comprador.telefone` |
+    | Produto | `produto.nome` |
+    | Valor | `venda.valor` |
+    | Status | `venda.status.descricao` |
+  </Accordion>
+
+  <Accordion title="Perfect Pay" icon="check">
+    Payload representativo:
+
+    ```json
+    {
+      "sale_status_enum": "approved",
+      "customer": {
+        "full_name": "Beatriz Rocha",
+        "email": "beatriz@email.com",
+        "phone_number": "5562988445566"
+      },
+      "product": { "name": "Curso de Tráfego" },
+      "sale_amount": 597.00
+    }
+    ```
+
+    Mapeamento sugerido:
+
+    | Campo Vistum | Origem |
+    |--------------|--------|
+    | Nome | `customer.full_name` |
+    | E-mail | `customer.email` |
+    | Telefone | `customer.phone_number` |
+    | Produto | `product.name` |
+    | Valor | `sale_amount` |
+    | Status | `sale_status_enum` |
+  </Accordion>
+
+  <Accordion title="Kirvano" icon="bolt">
+    Payload representativo:
+
+    ```json
+    {
+      "event": "SALE_APPROVED",
+      "customer": {
+        "name": "Rafael Dias",
+        "email": "rafael@email.com",
+        "phone_number": "5571999778866"
+      },
+      "products": [{ "name": "Pacote Premium" }],
+      "total_price": "R$ 1.297,00",
+      "status": "APPROVED"
+    }
+    ```
+
+    Mapeamento sugerido:
+
+    | Campo Vistum | Origem |
+    |--------------|--------|
+    | Nome | `customer.name` |
+    | E-mail | `customer.email` |
+    | Telefone | `customer.phone_number` |
+    | Produto | `products[0].name` |
+    | Valor | `total_price` |
+    | Status | `status` / `event` |
+  </Accordion>
+</AccordionGroup>
+
+## Idempotência
+
+O Vistum faz **upsert por telefone**: se o mesmo comprador disparar mais de um evento (ex: "compra aprovada" e depois "reembolso"), os eventos caem no **mesmo contato**, desde que o `phone` enviado seja o mesmo. Use isso para, por exemplo, adicionar a tag `cliente` na compra aprovada e a tag `reembolso` no evento de reembolso, sem duplicar o contato. Detalhes em [Webhooks de Entrada](/webhooks/inbound).
+
+## Tratando reembolso / cancelamento
+
+Crie uma **segunda automação** (ou um segundo gatilho "Webhook recebido") apontando a plataforma para o evento de reembolso/cancelamento. Como o upsert é por telefone, a automação atualiza o contato existente — você pode mover o card, trocar tags ou registrar o evento sem criar um lead novo.
+
+## Próximos passos
+
+<CardGroup cols={2}>
+  <Card title="Webhooks de Entrada" icon="arrow-right-to-bracket" href="/webhooks/inbound">
+    O mecanismo inbound completo: URL + token e field mapping.
+  </Card>
+  <Card title="Integrações" icon="puzzle-piece" href="/integrations/overview">
+    Visão geral e lista de plataformas suportadas.
+  </Card>
+</CardGroup>

@@ -48,7 +48,43 @@
             "pages": [
               "webhooks/overview",
               "webhooks/events",
-              "webhooks/verification"
+              "webhooks/verification",
+              "webhooks/inbound"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Automações",
+        "groups": [
+          {
+            "group": "Automações",
+            "pages": [
+              "automations/nodes"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Integrações",
+        "groups": [
+          {
+            "group": "Integrações",
+            "pages": [
+              "integrations/overview",
+              "integrations/checkout-platforms",
+              "integrations/vistum-forms"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Segurança",
+        "groups": [
+          {
+            "group": "Segurança",
+            "pages": [
+              "security/overview"
             ]
           }
         ]

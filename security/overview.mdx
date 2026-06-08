@@ -1,0 +1,86 @@
+---
+title: "Segurança e Privacidade"
+description: API Keys, rate limits, assinatura HMAC, proteção SSRF, idempotência e práticas de privacidade (LGPD) no Vistum.
+---
+
+## Visão geral
+
+Esta página consolida os mecanismos de segurança e privacidade da plataforma Vistum: autenticação por API Keys, limites de requisição, assinatura de webhooks de saída, proteção contra SSRF, idempotência e o tratamento de dados pessoais sob a LGPD.
+
+Base URL da API: `https://crm.vistum.com.br`
+
+## API Keys
+
+A API é autenticada por **API Keys** no header `Authorization` (veja [Autenticação](/authentication)).
+
+| Item | Detalhe |
+|------|---------|
+| Formato | `vg_live_` seguido de 40 caracteres hexadecimais |
+| Escopo | `leads:write` (criar e atualizar contatos e cards) |
+| Criação | Disponível a partir do plano **Growth** |
+| Limite por plano | 0 (sem acesso) / 1 / 5 chaves, conforme o plano |
+| Exibição | A chave é mostrada **uma única vez** na criação — não é recuperável |
+| Revogação | Pode ser revogada a qualquer momento em **Configurações → Desenvolvedor → API Keys** |
+
+### Rotação e revogação
+
+A chave não pode ser recuperada após a criação. Para rotacionar, **gere uma nova chave**, atualize a variável de ambiente da sua aplicação e **revogue a chave antiga**. Revogue imediatamente qualquer chave que suspeite estar comprometida.
+
+<Warning>
+  Nunca exponha a chave em código frontend, repositórios públicos ou logs. Armazene sempre em variáveis de ambiente.
+</Warning>
+
+## Rate limits
+
+A API aplica dois níveis de limite, ambos controlados via Redis:
+
+- **Por IP** — limite pré-autenticação, antes de validar a chave, para mitigar força bruta
+- **Por API Key** — limite configurável por chave
+
+Detalhes completos, headers de resposta e o comportamento do `429 Too Many Requests` estão em [Rate Limits](/rate-limits).
+
+## Assinatura HMAC (webhooks outbound)
+
+Todos os webhooks **de saída** (outbound) são assinados com **HMAC-SHA256**, permitindo que o seu sistema verifique que a requisição veio do Vistum e não foi adulterada.
+
+A assinatura chega no header:
+
+```http
+X-Vistum-Signature: t=1746666000,v1=<hmac_sha256_hex>
+```
+
+A verificação usa o **raw body** da requisição e uma comparação **timing-safe**. O passo a passo, com exemplos em Node.js, Python e PHP, está em [Verificação de Assinatura](/webhooks/verification).
+
+<Note>
+  **Inbound vs. outbound.** Webhooks de **saída** (Vistum → seu sistema) são assinados via HMAC. Já o gatilho **Webhook recebido** de uma automação (seu sistema → Vistum) é protegido por um **token único** na URL — não há verificação HMAC no inbound. Trate a URL de entrada como um segredo.
+</Note>
+
+## Proteção SSRF (chamadas de saída)
+
+Toda requisição HTTP que a plataforma faz para uma URL externa — o nó **HTTP** e a ação **Enviar Webhook** das automações — passa por proteção contra **SSRF (Server-Side Request Forgery)**:
+
+- O host de destino é **resolvido por DNS**
+- Endereços de **redes privadas e internas** (localhost, faixas reservadas, IPs internos) são **bloqueados**
+
+Isso impede que uma URL configurada seja usada para alcançar serviços internos da infraestrutura. A ação **Enviar Webhook** também tem timeout de 10 segundos e não faz retry — veja [Enviar webhook por automação](/guides/automation-webhook).
+
+## Idempotência
+
+A criação de leads é **idempotente por telefone** (`phone`). Reenvios com o mesmo número não geram contatos duplicados — o lead existente é reaproveitado. Isso torna seguro o retry de chamadas de criação após falhas de rede ou `429`/`500`.
+
+## Privacidade e LGPD
+
+O Vistum trata dados pessoais em conformidade com a LGPD. Os principais controles:
+
+| Controle | Como é aplicado |
+|----------|-----------------|
+| IPs mascarados | Endereços IP são mascarados nos logs |
+| E-mails mascarados | E-mails são mascarados nos registros de auditoria |
+| Criptografia de tokens | Tokens sensíveis são armazenados com criptografia **AES-256-GCM** |
+| Sem dados de terceiros | A plataforma não expõe dados de terceiros nas respostas e logs |
+
+### Retenção e canal de contato
+
+Registros de execução e auditoria são mantidos pelo período necessário à operação e às obrigações legais, com os dados pessoais mascarados conforme descrito acima.
+
+Para solicitações relacionadas a privacidade, dados pessoais ou segurança, use o canal oficial: **vistumcrm@gmail.com**.

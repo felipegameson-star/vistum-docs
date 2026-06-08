@@ -1,0 +1,123 @@
+---
+title: Webhooks de Entrada (Inbound)
+description: Receba eventos de sistemas externos no Vistum e transforme-os em leads, cards e tags automaticamente.
+---
+
+## O que é
+
+Um **webhook de entrada (inbound)** é o caminho oposto dos webhooks de saída: em vez de o Vistum notificar um sistema externo, é o sistema externo que envia um evento **para dentro** do Vistum.
+
+No Vistum, esse mecanismo é o **gatilho de automação "Webhook recebido"**. Ao adicionar esse gatilho a uma automação, o Vistum gera uma **URL única + token** exclusivos daquela automação. Qualquer sistema externo (Hotmart, Kiwify, Eduzz, Braip, Monetizze, Perfect Pay, Kirvano, Vistum Forms ou qualquer plataforma capaz de fazer um POST HTTP) envia o payload dele para essa URL. A automação então faz o **field mapping** dos dados recebidos e executa as ações do fluxo — criar lead/card, adicionar tag, etc.
+
+<Note>
+  Para uma porta de entrada **programática** mais direta (sem depender de uma automação), existe também o endpoint público [`POST /api/v1/leads`](/api-reference/leads), com escopo `leads:write`. Os dois caminhos coexistem: use o gatilho "Webhook recebido" quando o payload vier no formato de outra plataforma; use `/api/v1/leads` quando você controla o formato do envio.
+</Note>
+
+## A URL + token do gatilho "Webhook recebido"
+
+Cada automação que usa o gatilho **Webhook recebido** recebe a sua própria URL com um token único embutido. É esse token na URL que autentica a chamada — não há outra credencial a enviar.
+
+<Steps>
+  <Step title="Crie uma automação">
+    Acesse **Automações** → **Nova automação**.
+  </Step>
+  <Step title="Adicione o gatilho Webhook recebido">
+    Selecione **Webhook recebido** como gatilho inicial do fluxo.
+  </Step>
+  <Step title="Copie a URL gerada">
+    O Vistum gera uma **URL única com token** para essa automação. É nessa URL que o sistema externo fará o POST.
+  </Step>
+  <Step title="Configure o field mapping">
+    Mapeie os campos do payload recebido (nome, e-mail, telefone, produto, valor, status) para os campos do contato/card.
+  </Step>
+  <Step title="Defina as ações">
+    Adicione as ações do fluxo: criar lead, criar card no pipeline, adicionar tag, etc.
+  </Step>
+</Steps>
+
+<Warning>
+  A URL contém o token de autenticação. Trate-a como um segredo — quem tiver a URL pode disparar a automação. Não a exponha em código client-side, repositórios públicos ou logs.
+</Warning>
+
+## Como fazer o POST
+
+O sistema externo envia uma requisição HTTP **POST** para a URL do gatilho, com o corpo em JSON:
+
+```bash
+curl -X POST "https://crm.vistum.com.br/api/automations/webhook/<URL_UNICA_COM_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "João Ferreira",
+    "email": "joao@empresa.com",
+    "phone": "11999887766",
+    "product": "Curso Avançado",
+    "value": 497.00,
+    "status": "approved"
+  }'
+```
+
+<Note>
+  A URL exata (incluindo o caminho e o token) é a que aparece na tela do gatilho da sua automação. Use sempre aquela URL — não monte o caminho manualmente.
+</Note>
+
+## Formato esperado
+
+Não há um formato rígido obrigatório: o gatilho "Webhook recebido" aceita o payload **no formato que o sistema externo enviar**, e é o **field mapping da automação** que extrai os campos relevantes. Os campos comumente mapeados são:
+
+| Campo lógico | Exemplos de origem no payload |
+|--------------|-------------------------------|
+| Nome | `name`, `buyer.name`, `customer.full_name` |
+| E-mail | `email`, `buyer.email`, `customer.email` |
+| Telefone | `phone`, `buyer.checkout_phone`, `customer.phone_number` |
+| Produto | `product`, `product.name`, `items[0].name` |
+| Valor | `value`, `purchase.price.value`, `amount` |
+| Status | `status`, `purchase.status`, `event` |
+
+## Field mapping
+
+O mapeamento é feito **dentro da automação**, na configuração do gatilho. Você indica qual campo do JSON recebido corresponde a cada campo do contato/card no Vistum. Como cada plataforma usa nomes e estruturas diferentes (objetos aninhados, arrays de itens, etc.), o mapeamento exato depende do payload da plataforma específica — veja exemplos por plataforma em [Plataformas de Checkout](/integrations/checkout-platforms).
+
+## Idempotência (upsert por phone)
+
+A entrada de leads é **idempotente por telefone**. Quando um evento chega com um `phone` que já existe no workspace, o contato é **atualizado** em vez de duplicado. Isso vale tanto para o gatilho "Webhook recebido" (quando ele cria/atualiza o contato) quanto para o endpoint [`POST /api/v1/leads`](/api-reference/leads), cujo comportamento de upsert por `phone` está documentado em detalhe na referência da API.
+
+<Tip>
+  Na prática: se o mesmo comprador disparar dois eventos (ex: "compra aprovada" e depois "reembolso"), os dois caem no **mesmo contato**, desde que o telefone enviado seja o mesmo. Garanta que o sistema externo envie sempre o telefone do comprador para que o upsert funcione.
+</Tip>
+
+## Segurança por token (sem HMAC no inbound)
+
+A segurança do webhook de entrada é o **token único embutido na URL** gerada pela automação. Não há verificação de assinatura HMAC no inbound.
+
+<Warning>
+  A assinatura **HMAC-SHA256** documentada em [Verificação de Assinatura](/webhooks/verification) aplica-se **apenas aos webhooks de saída (outbound)** — quando o Vistum envia eventos para você. No **inbound**, não há header `X-Vistum-Signature` a validar; a autenticação é o token secreto na URL. Por isso, mantenha essa URL em sigilo e regenere a automação caso suspeite de vazamento.
+</Warning>
+
+## Exemplo completo (curl)
+
+```bash
+curl -X POST "https://crm.vistum.com.br/api/automations/webhook/<URL_UNICA_COM_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Ana Costa",
+    "email": "ana@email.com",
+    "phone": "5521988776655",
+    "product": "Mentoria Premium",
+    "value": 1997.00,
+    "status": "approved",
+    "transaction_id": "TX-2026-00123"
+  }'
+```
+
+A automação recebe esse JSON, mapeia os campos e executa o fluxo (ex: cria o contato Ana Costa, abre um card no pipeline de vendas e adiciona a tag `compra-aprovada`).
+
+## Próximos passos
+
+<CardGroup cols={2}>
+  <Card title="Enviar webhook por automação" icon="arrow-up-right-from-square" href="/guides/automation-webhook">
+    O caminho inverso: notificar sistemas externos a partir do CRM.
+  </Card>
+  <Card title="Criar Lead (API)" icon="user-plus" href="/api-reference/leads">
+    Porta de entrada programática via `POST /api/v1/leads`.
+  </Card>
+</CardGroup>

@@ -1,0 +1,144 @@
+---
+title: "Automações: Nós e Limites"
+description: Referência técnica dos gatilhos, nós e limites do builder de automações do Vistum.
+---
+
+## Visão geral
+
+Uma automação no Vistum é um fluxo construído visualmente no editor (**Automações**). Todo fluxo começa por um **gatilho** (entrada) e segue por uma sequência de **nós** que enviam mensagens, ramificam o caminho, esperam, executam ações ou chamam serviços externos.
+
+Esta página é a referência técnica de cada gatilho e nó, das variáveis disponíveis e dos limites e proteções aplicados em cada execução.
+
+<Note>
+  A ação **Enviar Webhook** (`webhook_out`) tem documentação dedicada — payload padrão, variáveis, proteção SSRF e timeout. Veja [Enviar webhook por automação](/guides/automation-webhook).
+</Note>
+
+## Gatilhos (entrada do fluxo)
+
+O gatilho define **quando** a automação entra em execução para um contato. Todo fluxo tem exatamente um gatilho.
+
+| Gatilho | Dispara quando |
+|---------|----------------|
+| Novo contato | Um contato é criado no workspace |
+| Tag adicionada | Uma tag específica é atribuída ao contato |
+| Tag removida | Uma tag específica é retirada do contato |
+| Mudança de etapa | O card do contato muda de etapa no pipeline |
+| Negócio ganho | O negócio do contato é marcado como ganho |
+| Negócio perdido | O negócio do contato é marcado como perdido |
+| Mensagem recebida | O contato envia qualquer mensagem |
+| Palavra-chave recebida | A mensagem recebida contém uma palavra-chave configurada |
+| Sem resposta (X horas) | O contato não responde dentro de X horas |
+| Webhook recebido | Uma requisição externa chega no endpoint da automação |
+
+### Gatilho de Webhook recebido
+
+O gatilho **Webhook recebido** expõe uma URL de entrada com **token único por automação**. Sistemas externos chamam essa URL para iniciar o fluxo, e os dados enviados ficam acessíveis como variáveis (veja [Variáveis](#variaveis)).
+
+<Warning>
+  O endpoint de entrada é protegido pelo **token único** embutido na URL — não há verificação HMAC no inbound. Trate a URL como um segredo: não a exponha em código frontend, repositórios públicos ou logs.
+</Warning>
+
+## Nós do fluxo
+
+### Mensagem
+
+Envia uma mensagem de texto via WhatsApp para o contato. Suporta variáveis no corpo (ex.: `{{contact.name}}`, `{{contact.phone}}`), substituídas pelos valores do contexto no momento do disparo.
+
+### Condição
+
+Bifurca o fluxo em caminhos distintos com base em um critério do contato:
+
+- **Tag** — o contato possui (ou não) uma tag
+- **Etapa** — o card está em uma etapa específica do pipeline
+- **Campo personalizado** — valor de um campo customizado do contato
+
+Cada saída da condição segue para um ramo diferente do fluxo.
+
+### Aguardar
+
+Pausa o fluxo por uma duração configurada em **minutos, horas ou dias**. Quando o tempo expira, a execução continua para o próximo nó.
+
+### Ação
+
+Executa uma ação sobre o contato ou o pipeline:
+
+| Ação | Efeito |
+|------|--------|
+| Adicionar tag | Atribui uma tag ao contato |
+| Remover tag | Retira uma tag do contato |
+| Enviar webhook (`webhook_out`) | Faz uma chamada HTTP POST a uma URL externa — veja [Enviar webhook por automação](/guides/automation-webhook) |
+
+### Template Meta
+
+Envia um **template oficial do WhatsApp Business** (aprovado pela Meta). É o nó usado para alcançar o contato **fora da janela de 24h**, em que mensagens de texto livre não são permitidas pela política do WhatsApp.
+
+### Vistum IA
+
+Gera uma resposta com **IA (GPT-4o)** a partir do contexto da conversa. O nó **consome créditos de IA** do workspace por execução. A saída pode ser usada nos nós seguintes do fluxo.
+
+### Operação
+
+Executa uma operação de dados no CRM:
+
+| Operação | Efeito |
+|----------|--------|
+| Criar lead | Cria um novo lead/contato |
+| Criar tarefa | Cria uma tarefa associada ao contato |
+| Verificar existência do lead | Confere se o lead já existe (idempotência por telefone) e expõe o resultado para o fluxo |
+
+### HTTP
+
+Chama uma **API externa** (GET ou POST). O nó expõe uma **variável de saída** com o resultado da resposta, que pode ser referenciada nos nós seguintes (ex.: ler um campo retornado pela API para usar em uma condição ou mensagem).
+
+<Note>
+  Para o nó **HTTP** e a ação **Enviar Webhook**, todas as chamadas de saída passam por proteção SSRF: o host é resolvido por DNS e endereços de redes privadas/internas são bloqueados. O timeout da ação **Enviar Webhook** é de 10 segundos, sem retry.
+</Note>
+
+## Variáveis
+
+As variáveis seguem o padrão `{{...}}` e são substituídas pelos valores do contexto no momento da execução. Em vez de uma lista fechada, pense em **categorias**:
+
+### Dados do contato
+
+Atributos do contato que disparou ou avançou no fluxo:
+
+```
+{{contact.name}}    // Nome do contato
+{{contact.phone}}   // Telefone (formato E.164)
+{{contact.email}}   // Email do contato
+```
+
+Campos personalizados do contato também ficam disponíveis.
+
+### Dados do gatilho
+
+Valores específicos do evento que iniciou o fluxo — por exemplo, os campos enviados na requisição de um **Webhook recebido**, a etapa de origem/destino em uma **Mudança de etapa**, ou a palavra-chave que casou em **Palavra-chave recebida**.
+
+### Saída de nós (HTTP / IA)
+
+Resultados produzidos por nós anteriores do fluxo:
+
+- A **variável de saída** de um nó **HTTP** (campos da resposta da API externa)
+- O texto gerado por um nó **Vistum IA**
+
+## Limites e proteções
+
+Cada automação aplica proteções para evitar loops, disparos duplicados e abuso:
+
+| Proteção | Comportamento |
+|----------|---------------|
+| Dedup 30s | Execuções repetidas da mesma automação para o mesmo contato dentro de 30 segundos são descartadas (anti-loop) |
+| `onlyOnce` | Opção que limita a automação a **uma execução por contato** (a partir da segunda, é ignorada) |
+| Rate limit | **50 execuções por hora** por instância de WhatsApp |
+
+### Logs e histórico
+
+Cada execução gera um registro em **AutomationLog**, com status:
+
+| Status | Significado |
+|--------|-------------|
+| `success` | A execução concluiu sem erros |
+| `error` | A execução falhou em algum nó |
+| `dedup` | A execução foi descartada pela proteção anti-loop ou `onlyOnce` |
+
+Os registros podem ser consultados e filtrados na rota **/historico**.

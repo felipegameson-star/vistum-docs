@@ -1,0 +1,54 @@
+---
+title: Integrações
+description: Como conectar plataformas de checkout e ferramentas externas ao Vistum CRM.
+---
+
+## Padrão de integração
+
+Todas as integrações do Vistum seguem o mesmo padrão técnico: **inbound via gatilho de automação**. Em vez de manter um conector específico por plataforma, o Vistum oferece o gatilho de automação **"Webhook recebido"**, que gera uma **URL única + token** por automação. A plataforma externa faz um POST nessa URL com o payload dela, e a automação faz o **field mapping** (nome, e-mail, telefone, produto, valor, status) para criar leads, abrir cards, adicionar tags, etc.
+
+Como o mapeamento é feito na automação, **qualquer** plataforma capaz de disparar um webhook HTTP se conecta ao Vistum — mesmo que não esteja na lista abaixo.
+
+<Note>
+  A segurança do inbound é o **token na URL**, não HMAC. A verificação de assinatura HMAC documentada em [Verificação de Assinatura](/webhooks/verification) vale só para webhooks de **saída**. Detalhes em [Webhooks de Entrada](/webhooks/inbound).
+</Note>
+
+## O que muda de uma plataforma para outra
+
+O mecanismo é sempre o mesmo. As únicas diferenças entre plataformas são:
+
+- **O nome do evento** de "compra aprovada", "reembolso" ou "cancelamento" (cada plataforma usa o seu).
+- **O formato do payload** (nomes de campos e estrutura — alguns aninham dados do comprador em objetos como `buyer` ou `customer`).
+
+Por isso o **field mapping** é feito caso a caso, dentro da automação. Veja exemplos representativos por plataforma em [Plataformas de Checkout](/integrations/checkout-platforms).
+
+## Plataformas suportadas
+
+| Plataforma | Como conecta |
+|------------|--------------|
+| Hotmart | Webhook recebido (inbound) |
+| Kiwify | Webhook recebido (inbound) |
+| Eduzz | Webhook recebido (inbound) |
+| Braip | Webhook recebido (inbound) |
+| Monetizze | Webhook recebido (inbound) |
+| Perfect Pay | Webhook recebido (inbound) |
+| Kirvano | Webhook recebido (inbound) |
+| Vistum Forms | Entrega de leads via o mesmo mecanismo de webhook/endpoint de leads |
+| Webhook genérico | Qualquer sistema que faça POST HTTP na URL do gatilho |
+
+## Páginas desta seção
+
+<CardGroup cols={2}>
+  <Card title="Plataformas de Checkout" icon="cart-shopping" href="/integrations/checkout-platforms">
+    Referência técnica das 7 plataformas: evento a configurar, payload representativo e mapeamento sugerido.
+  </Card>
+  <Card title="Vistum Forms" icon="clipboard-list" href="/integrations/vistum-forms">
+    Como o Vistum Forms entrega respostas como leads no CRM.
+  </Card>
+  <Card title="Webhooks de Entrada" icon="arrow-right-to-bracket" href="/webhooks/inbound">
+    O mecanismo inbound completo: URL + token, field mapping e idempotência.
+  </Card>
+  <Card title="Criar Lead (API)" icon="user-plus" href="/api-reference/leads">
+    Porta de entrada programática via `POST /api/v1/leads`.
+  </Card>
+</CardGroup>

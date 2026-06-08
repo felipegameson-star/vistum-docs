@@ -1,0 +1,27 @@
+---
+title: Vistum Forms
+description: Como o Vistum Forms entrega respostas de formulário como leads no CRM.
+---
+
+## O que é
+
+O **Vistum Forms** (em [f.vistum.com.br](https://f.vistum.com.br)) é o produto irmão de formulários do Vistum. Quando alguém responde a um formulário, a resposta é entregue ao Vistum CRM como um **lead**.
+
+## Como entrega ao CRM
+
+Tecnicamente, o Vistum Forms entrega leads pelo **mesmo mecanismo inbound** das demais integrações: o envio de webhook / endpoint de leads do Vistum. Os campos da resposta (nome, e-mail, telefone e demais campos do formulário) são mapeados para o contato/card no CRM.
+
+<Note>
+  Por usar o mesmo mecanismo, a entrega segue as mesmas regras documentadas em [Webhooks de Entrada](/webhooks/inbound) — incluindo a **idempotência por telefone** (`phone`): respostas do mesmo número atualizam o contato existente em vez de duplicá-lo.
+</Note>
+
+## Próximos passos
+
+<CardGroup cols={2}>
+  <Card title="Webhooks de Entrada" icon="arrow-right-to-bracket" href="/webhooks/inbound">
+    O mecanismo inbound: URL + token, field mapping e idempotência.
+  </Card>
+  <Card title="Criar Lead (API)" icon="user-plus" href="/api-reference/leads">
+    A porta de entrada de leads via `POST /api/v1/leads`.
+  </Card>
+</CardGroup>
