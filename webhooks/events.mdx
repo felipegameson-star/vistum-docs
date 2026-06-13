@@ -9,11 +9,11 @@ description: Lista de todos os eventos que o Vistum pode enviar para o seu webho
 |--------|-----------------|
 | `lead.created` | Um novo lead é criado via API (`POST /api/v1/leads`) |
 | `contact.created` | Um novo contato chega pelo WhatsApp |
-| `contact.updated` | Dados de um contato são atualizados (nome, email, etc.) |
+| `contact.updated` | Dados de um contato são atualizados (nome, email, telefone, etc.) |
 | `message.received` | Uma mensagem é recebida de um contato |
 | `contact.tag_added` | Uma tag é adicionada a um contato |
 | `contact.tag_removed` | Uma tag é removida de um contato |
-| `card.created` | Um card é criado em um pipeline |
+| `card.created` | Um card (negócio) é criado em um pipeline |
 | `card.moved` | Um card é movido entre etapas do pipeline |
 | `card.won` | Um card é marcado como ganho |
 | `card.lost` | Um card é marcado como perdido |
@@ -94,6 +94,32 @@ Disparado quando um contato novo é criado manualmente no CRM.
 
 ---
 
+### contact.updated
+
+Disparado quando os dados de um contato são atualizados via painel do CRM (nome, email, telefone, observações, etc.).
+
+```json
+{
+  "event": "contact.updated",
+  "workspace_id": "wks_abc123",
+  "timestamp": "2026-05-08T15:30:00.000Z",
+  "contact_id": "cnt_ghi789",
+  "contact_name": "João Silva",
+  "phone": "5511999887766",
+  "email": "joao@empresa.com"
+}
+```
+
+<Note>
+  O webhook só é emitido em uma atualização **humana** da ficha do contato (`PUT /chat/contacts/[id]`). A ação de automação *atualizar contato* escreve direto no banco (`prisma.update`) e **não** passa pelo emissor — portanto não dispara `contact.updated`. Isso evita loops entre automações.
+</Note>
+
+<Note>
+  **`changedFields` e o gatilho de automação.** O *payload do webhook outbound* acima **não** inclui a lista de campos alterados. No entanto, o **gatilho de automação** equivalente ("Contato atualizado" / `contact_updated`) recebe internamente a variável `changedFields` — uma lista separada por vírgula com os campos que realmente mudaram, dentre: `name`, `email`, `phone`, `notes`, `tags`. O gatilho só dispara quando `changedFields.length > 0` (mudança real; PUT no-op é ignorado) e aceita um filtro opcional `fields` que só deixa passar quando um dos campos escolhidos mudou. Se você precisar dos campos alterados em um fluxo externo, use o gatilho de automação + ação *Enviar webhook* com o body customizado, não o webhook outbound padrão.
+</Note>
+
+---
+
 ### message.received
 
 Disparado quando uma mensagem inbound é recebida de um contato — via WhatsApp Evolution API ou WhatsApp Cloud API.
@@ -161,62 +187,6 @@ O campo `source` indica a origem da adição:
 
 ---
 
-### card.created
-
-Disparado quando um card é adicionado a um pipeline (pelo CRM ou pela API).
-
-```json
-{
-  "event": "card.created",
-  "workspace_id": "wks_abc123",
-  "timestamp": "2025-05-07T14:30:00.000Z",
-  "card_id": "card_mno345",
-  "stage_id": "stage_stu901",
-  "pipeline_id": "pipe_pqr678",
-  "contact_id": "cnt_ghi789",
-  "name": "João Ferreira"
-}
-```
-
----
-
-### card.moved
-
-Disparado quando um card é movido para outra etapa do pipeline.
-
-```json
-{
-  "event": "card.moved",
-  "workspace_id": "wks_abc123",
-  "timestamp": "2025-05-07T14:30:00.000Z",
-  "card_id": "card_mno345",
-  "from_stage_id": "stage_stu901",
-  "to_stage_id": "stage_vwx234",
-  "contact_id": "cnt_ghi789",
-  "name": "João Ferreira"
-}
-```
-
----
-
-### contact.updated
-
-Disparado quando os dados de um contato são atualizados via painel do CRM (nome, email, empresa, telefone adicional, etc.).
-
-```json
-{
-  "event": "contact.updated",
-  "workspace_id": "wks_abc123",
-  "timestamp": "2026-05-08T15:30:00.000Z",
-  "contact_id": "cnt_ghi789",
-  "contact_name": "João Silva",
-  "phone": "5511999887766",
-  "email": "joao@empresa.com"
-}
-```
-
----
-
 ### contact.tag_removed
 
 Disparado quando uma tag é removida de um contato — via painel, automação ou API.
@@ -238,6 +208,48 @@ Disparado quando uma tag é removida de um contato — via painel, automação o
 ```
 
 O campo `source` tem os mesmos valores de `contact.tag_added` (`manual`, `automation`, `api`, `import`).
+
+---
+
+### card.created
+
+Disparado quando um card (negócio) é adicionado a um pipeline — pelo Kanban, pela ficha do contato, por formulário ou pela API.
+
+```json
+{
+  "event": "card.created",
+  "workspace_id": "wks_abc123",
+  "timestamp": "2025-05-07T14:30:00.000Z",
+  "card_id": "card_mno345",
+  "stage_id": "stage_stu901",
+  "pipeline_id": "pipe_pqr678",
+  "contact_id": "cnt_ghi789",
+  "name": "João Ferreira"
+}
+```
+
+<Note>
+  O gatilho de automação equivalente (`card_created`, "Negócio criado") aceita um filtro opcional por `pipelineId` — em branco, dispara para qualquer pipeline. O `pipelineId` do card também chega como variável da automação.
+</Note>
+
+---
+
+### card.moved
+
+Disparado quando um card é movido para outra etapa do pipeline.
+
+```json
+{
+  "event": "card.moved",
+  "workspace_id": "wks_abc123",
+  "timestamp": "2025-05-07T14:30:00.000Z",
+  "card_id": "card_mno345",
+  "from_stage_id": "stage_stu901",
+  "to_stage_id": "stage_vwx234",
+  "contact_id": "cnt_ghi789",
+  "name": "João Ferreira"
+}
+```
 
 ---
 
@@ -284,3 +296,23 @@ Disparado quando um card é marcado como **perdido** no pipeline.
 <Note>
   `lost_reason` é `null` quando o motivo de perda não foi preenchido.
 </Note>
+
+---
+
+## Reembolso e cancelamento (webhook inbound + eventFilter)
+
+O Vistum ainda não emite um evento dedicado de reembolso. Para reagir a reembolso/cancelamento de checkout (Hotmart, Kiwify, etc.), use o gatilho de automação **`webhook_received`** com um **`eventFilter`** no campo de status do payload do checkout.
+
+O endpoint inbound (`POST /api/automations/webhook-in/[token]`) extrai o campo configurado em `eventFilter.path` e compara com o valor esperado. Eventos que não batem ficam registrados com status `filtered` e não disparam o fluxo:
+
+```json
+{
+  "eventFilter": {
+    "path": "event",
+    "op": "equals",
+    "value": "REFUNDED"
+  }
+}
+```
+
+Todos os campos escalares do body recebido ficam disponíveis nas ações como variáveis `webhook.<campo>` (ex: `webhook.status`, `webhook.product`, `webhook.amount`, `webhook.eventType`). Cada chave é truncada e tem `{{`/`}}` neutralizados contra injeção. Há dedup por `externalId` (Redis) e rate limit por IP e por token.
