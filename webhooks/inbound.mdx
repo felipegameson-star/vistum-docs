@@ -44,7 +44,7 @@ Cada automação que usa o gatilho **Webhook recebido** recebe a sua própria UR
 O sistema externo envia uma requisição HTTP **POST** para a URL do gatilho, com o corpo em JSON:
 
 ```bash
-curl -X POST "https://crm.vistum.com.br/api/automations/webhook/<URL_UNICA_COM_TOKEN>" \
+curl -X POST "https://crm.vistum.com.br/api/automations/webhook-in/<TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "João Ferreira",
@@ -96,7 +96,7 @@ A segurança do webhook de entrada é o **token único embutido na URL** gerada 
 ## Exemplo completo (curl)
 
 ```bash
-curl -X POST "https://crm.vistum.com.br/api/automations/webhook/<URL_UNICA_COM_TOKEN>" \
+curl -X POST "https://crm.vistum.com.br/api/automations/webhook-in/<TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Ana Costa",
