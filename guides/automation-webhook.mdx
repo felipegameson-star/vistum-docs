@@ -5,7 +5,7 @@ description: Use a ação webhook_out para notificar sistemas externos quando ev
 
 ## Como funciona
 
-A ação **Enviar Webhook** em uma automação faz uma chamada HTTP POST para qualquer URL externa quando o fluxo chega naquele nó. É diferente dos webhooks outbound (que disparam por eventos do CRM) — aqui você tem controle total de quando o disparo acontece dentro do fluxo.
+A ação **Enviar Webhook** em uma automação faz uma chamada HTTP (POST por padrão, GET também suportado) para uma URL externa quando o fluxo chega naquele nó. É diferente dos webhooks outbound (que disparam por eventos do CRM) — aqui você tem controle de quando o disparo acontece dentro do fluxo, mas **não** controle total do corpo da requisição: o corpo customizado é anexado ao payload padrão, não o substitui (veja [Payload padrão](#payload-padrão-sem-body-customizado) abaixo).
 
 ## Configurar a ação
 
@@ -23,13 +23,13 @@ A ação **Enviar Webhook** em uma automação faz uma chamada HTTP POST para qu
     Cole a URL de destino (HTTPS obrigatório).
   </Step>
   <Step title="Personalize o body (opcional)">
-    Use variáveis para incluir dados do contexto:
+    Use variáveis para incluir dados do contexto. O JSON que você digitar aqui entra no payload padrão dentro do campo `data`:
 
     ```json
     {
-      "contato": "{{contact.name}}",
-      "telefone": "{{contact.phone}}",
-      "etapa": "{{pipeline.stage}}"
+      "contato": "{{name}}",
+      "telefone": "{{phone}}",
+      "etapa": "{{stage}}"
     }
     ```
   </Step>
@@ -37,13 +37,22 @@ A ação **Enviar Webhook** em uma automação faz uma chamada HTTP POST para qu
 
 ## Variáveis disponíveis
 
+As variáveis usam **chave plana** — notação com ponto (`{{contact.name}}`) não é interpretada e aparece literalmente na saída.
+
 | Variável | Descrição |
 |----------|-----------|
-| `{{contact.name}}` | Nome do contato |
-| `{{contact.phone}}` | Telefone (formato E.164) |
-| `{{contact.email}}` | Email do contato |
-| `{{message.type}}` | Tipo da mensagem que disparou |
-| `{{pipeline.stage}}` | Nome da etapa do pipeline |
+| `{{name}}` | Nome do contato |
+| `{{phone}}` | Telefone do contato |
+| `{{email}}` | E-mail do contato |
+| `{{company}}` | Empresa do contato |
+| `{{notes}}` | Notas do contato |
+| `{{stage}}` | Nome da etapa atual do card no pipeline |
+| `{{assigned_agent}}` | Nome do atendente responsável |
+| `{{lastMessage}}` | Texto da última mensagem recebida |
+| `{{webhook.<campo>}}` | Quando a automação foi iniciada por um gatilho **Webhook recebido**, qualquer campo escalar do payload de entrada (ex.: `{{webhook.product}}`, `{{webhook.amount}}`) |
+| `{{<outputVar>}}` / `{{<outputVar>_<campo>}}` | Saída de um nó **HTTP** ou **Vistum IA** anterior no fluxo |
+
+Referência completa em [Automações: Nós e Limites](/automations/nodes#variaveis).
 
 ## Payload padrão (sem body customizado)
 
@@ -72,6 +81,32 @@ A ação **Enviar Webhook** em uma automação faz uma chamada HTTP POST para qu
   `timestamp` é um **Unix timestamp inteiro** (segundos). Converta com `new Date(timestamp * 1000)` em JS ou `datetime.fromtimestamp(timestamp)` em Python.
 </Note>
 
+### Com body customizado
+
+Se você preencher o campo **Personalizar body**, o JSON é interpolado e entra **dentro** do payload padrão, no campo `data` — os campos `event`, `automationId`, `contact`, `pipeline`, `trigger` e `vars` continuam sendo enviados normalmente:
+
+```json
+{
+  "event": "automation.webhook",
+  "automationId": "auto_xxx",
+  "workspaceId": "wks_xxx",
+  "timestamp": 1715093400,
+  "contact": { "id": "cnt_xxx", "name": "Nome do Contato", "phone": "5511999887766" },
+  "pipeline": { "cardId": "card_xxx", "fromStageId": null, "toStageId": null },
+  "trigger": "stage_changed",
+  "vars": {},
+  "data": {
+    "contato": "Nome do Contato",
+    "telefone": "5511999887766",
+    "etapa": "Proposta Enviada"
+  }
+}
+```
+
+<Warning>
+  Se o body customizado não for um JSON válido depois da interpolação das variáveis, ele é descartado (fica de fora do payload) e o erro é registrado no log da execução — a chamada ainda é feita, só sem o campo `data`.
+</Warning>
+
 ## Exemplos práticos
 
 ### Notificar n8n quando card mudar de etapa
@@ -82,8 +117,8 @@ A ação **Enviar Webhook** em uma automação faz uma chamada HTTP POST para qu
    ```json
    {
      "evento": "proposta_enviada",
-     "cliente": "{{contact.name}}",
-     "telefone": "{{contact.phone}}"
+     "cliente": "{{name}}",
+     "telefone": "{{phone}}"
    }
    ```
 
@@ -97,11 +132,11 @@ A ação **Enviar Webhook** em uma automação faz uma chamada HTTP POST para qu
 
 1. Gatilho: **Negócio marcado como ganho**
 2. Nó Ação: Enviar Webhook → URL do n8n
-3. O n8n posta mensagem no Slack: `🎉 {{contact.name}} fechou negócio!`
+3. O n8n posta mensagem no Slack: `🎉 {{name}} fechou negócio!`
 
 ## Limites e comportamento
 
-- **Timeout**: 10 segundos por chamada
-- **Sem retry**: se a URL falhar, o nó de automação registra o erro mas o fluxo continua
-- **Log**: cada execução aparece no histórico com URL mascarada, HTTP status e tempo
-- **SSRF**: URLs de redes privadas são bloqueadas automaticamente (localhost, IPs internos)
+- **Timeout**: 10 segundos por chamada, sem retry
+- **Chamadas por execução**: máximo de **3 chamadas HTTP por execução do fluxo**, limite **compartilhado** entre a ação Enviar Webhook e o nó HTTP genérico — a partir da 4ª chamada (de qualquer um dos dois tipos), o nó é ignorado silenciosamente
+- **Log**: cada execução aparece no histórico com URL mascarada, HTTP status e tempo de resposta
+- **SSRF**: URLs de redes privadas são bloqueadas automaticamente (localhost, IPs internos), sem seguir redirects
