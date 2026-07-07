@@ -19,7 +19,9 @@ O gatilho define **quando** a automação entra em execução para um contato. T
 
 | Gatilho | Dispara quando |
 |---------|----------------|
-| Novo contato | Um contato é criado no workspace |
+| Novo contato criado | Um contato é criado no workspace |
+| Negócio criado | Um card é criado em um pipeline (filtros opcionais por pipeline e/ou etapa) |
+| Contato atualizado | Um atendente atualiza a ficha do contato pelo painel (nome, e-mail, telefone ou notas). Filtro opcional pelos campos alterados |
 | Tag adicionada | Uma tag específica é atribuída ao contato |
 | Tag removida | Uma tag específica é retirada do contato |
 | Mudança de etapa | O card do contato muda de etapa no pipeline |
@@ -29,10 +31,15 @@ O gatilho define **quando** a automação entra em execução para um contato. T
 | Palavra-chave recebida | A mensagem recebida contém uma palavra-chave configurada |
 | Sem resposta (X horas) | O contato não responde dentro de X horas |
 | Webhook recebido | Uma requisição externa chega no endpoint da automação |
+| Fora do horário de atendimento | Uma conversa de ingresso chega fora do expediente do departamento |
+
+<Warning>
+  O gatilho **Fora do horário de atendimento** existe no builder, mas hoje **não dispara em produção**: depende do roteamento por departamento (MVP3), que está atrás de uma flag ainda desligada por padrão para os workspaces comerciais. Não conte com esse gatilho até confirmar com o time Vistum que o roteamento está habilitado no seu workspace.
+</Warning>
 
 ### Gatilho de Webhook recebido
 
-O gatilho **Webhook recebido** expõe uma URL de entrada com **token único por automação**. Sistemas externos chamam essa URL para iniciar o fluxo, e os dados enviados ficam acessíveis como variáveis (veja [Variáveis](#variaveis)).
+O gatilho **Webhook recebido** expõe uma URL de entrada com **token único por automação**. Sistemas externos chamam essa URL para iniciar o fluxo, e os dados enviados ficam acessíveis como variáveis `webhook.<campo>` (veja [Variáveis](#variaveis)).
 
 <Warning>
   O endpoint de entrada é protegido pelo **token único** embutido na URL — não há verificação HMAC no inbound. Trate a URL como um segredo: não a exponha em código frontend, repositórios públicos ou logs.
@@ -42,17 +49,25 @@ O gatilho **Webhook recebido** expõe uma URL de entrada com **token único por 
 
 ### Mensagem
 
-Envia uma mensagem de texto via WhatsApp para o contato. Suporta variáveis no corpo (ex.: `{{contact.name}}`, `{{contact.phone}}`), substituídas pelos valores do contexto no momento do disparo.
+Envia uma mensagem de texto via WhatsApp para o contato. Suporta variáveis no corpo (ex.: `{{name}}`, `{{phone}}`), substituídas pelos valores do contexto no momento do disparo.
 
 ### Condição
 
-Bifurca o fluxo em caminhos distintos com base em um critério do contato:
+Bifurca o fluxo em dois caminhos (**sim** / **não**) com base em um único critério:
 
-- **Tag** — o contato possui (ou não) uma tag
-- **Etapa** — o card está em uma etapa específica do pipeline
-- **Campo personalizado** — valor de um campo customizado do contato
+| Critério | Avalia |
+|----------|--------|
+| Tag | O contato possui uma tag específica |
+| Etapa | O contato está em uma etapa específica do pipeline (etapa de origem ou destino) |
+| Mensagem contém palavra-chave | O texto da última mensagem recebida contém um termo |
+| Negócio existe | Existe um card de pipeline aberto para o contato |
+| Variável igual / contém | O valor de uma variável do fluxo (ex.: saída de um nó HTTP ou IA) é igual a ou contém um texto |
+| Campo do contato igual / contém | **Apenas os campos fixos** `name`, `email`, `phone`, `notes` ou `company` — não aceita campo personalizado |
+| Horário comercial | A hora atual está dentro de uma janela configurada (`startHour`–`endHour`, fuso configurável) |
 
-Cada saída da condição segue para um ramo diferente do fluxo.
+<Note>
+  **Campo personalizado não está disponível na Condição.** Se você precisa ramificar por um campo personalizado do contato (`cf:<id>`), use o nó **Dividir / Switch** com o assunto "Campo do contato" — ele é o único que aceita campos personalizados, além dos mesmos fixos (`name`, `email`, `phone`, `notes`).
+</Note>
 
 ### Aguardar
 
@@ -60,13 +75,24 @@ Pausa o fluxo por uma duração configurada em **minutos, horas ou dias**. Quand
 
 ### Ação
 
-Executa uma ação sobre o contato ou o pipeline:
+Executa uma ação sobre o contato, a conversa ou o pipeline:
 
 | Ação | Efeito |
 |------|--------|
 | Adicionar tag | Atribui uma tag ao contato |
 | Remover tag | Retira uma tag do contato |
-| Enviar webhook (`webhook_out`) | Faz uma chamada HTTP POST a uma URL externa — veja [Enviar webhook por automação](/guides/automation-webhook) |
+| Mover no pipeline | Move o card do contato para outra etapa |
+| Criar card | Cria um novo card em um pipeline para o contato |
+| Notificar atendente | Cria uma notificação interna para um atendente |
+| Atualizar contato | Atualiza um campo fixo do contato (`name`, `email`, `phone` ou `notes`) |
+| Atribuir atendente | Atribui a conversa a um atendente (ou por rotação round-robin) |
+| Mover para departamento | Roteia a conversa para outro departamento |
+| Pausar bot / Reativar bot | Pausa ou retoma a automação de bot para aquela conversa |
+| Finalizar conversa / Reabrir conversa | Muda o status da conversa |
+| Aguardando humano | Marca a conversa como aguardando atendimento humano |
+| Adicionar observação | Registra uma nota interna na conversa |
+| Sair do fluxo / Remover de outros fluxos | Encerra a execução atual (ou remove o contato de outras automações em andamento) |
+| Enviar webhook (`webhook_out`) | Faz uma chamada HTTP a uma URL externa — veja [Enviar webhook por automação](/guides/automation-webhook) |
 
 ### Template Meta
 
@@ -74,7 +100,11 @@ Envia um **template oficial do WhatsApp Business** (aprovado pela Meta). É o n�
 
 ### Vistum IA
 
-Gera uma resposta com **IA (GPT-4o)** a partir do contexto da conversa. O nó **consome créditos de IA** do workspace por execução. A saída pode ser usada nos nós seguintes do fluxo.
+Gera uma resposta com **IA (GPT-4o)** a partir do prompt configurado no nó. O nó **consome créditos de IA** do workspace por execução — bloqueado antes mesmo de chamar a IA em planos sem IA habilitada ou sem créditos. A saída fica disponível na variável de saída (`{{aiResult}}` por padrão) para os nós seguintes do fluxo.
+
+<Note>
+  O modelo não é selecionável na interface hoje — todo nó de IA novo usa o modelo padrão configurado no builder, sem opção de troca por automação.
+</Note>
 
 ### Operação
 
@@ -88,38 +118,71 @@ Executa uma operação de dados no CRM:
 
 ### HTTP
 
-Chama uma **API externa** (GET ou POST). O nó expõe uma **variável de saída** com o resultado da resposta, que pode ser referenciada nos nós seguintes (ex.: ler um campo retornado pela API para usar em uma condição ou mensagem).
+Chama uma **API externa** (GET ou POST). O nó expõe uma **variável de saída** (`outputVar`) com o resultado da resposta, que pode ser referenciada nos nós seguintes (ex.: ler um campo retornado pela API para usar em uma condição ou mensagem). Campos escalares do JSON de resposta também ficam disponíveis individualmente como `<outputVar>_<campo>`.
 
 <Note>
-  Para o nó **HTTP** e a ação **Enviar Webhook**, todas as chamadas de saída passam por proteção SSRF: o host é resolvido por DNS e endereços de redes privadas/internas são bloqueados. O timeout da ação **Enviar Webhook** é de 10 segundos, sem retry.
+  O nó **HTTP** tem timeout de **5 segundos** e lê no máximo **2000 bytes** da resposta. Para o nó **HTTP** e a ação **Enviar Webhook**, todas as chamadas de saída passam por proteção SSRF: o host é resolvido por DNS e endereços de redes privadas/internas são bloqueados. O timeout da ação **Enviar Webhook** é de 10 segundos, sem retry.
 </Note>
+
+### Dividir / Switch
+
+Roteia o fluxo em múltiplas saídas (mais de duas), com base em um assunto configurável: tag, variável do fluxo, resposta capturada (nó Perguntar), etapa do pipeline, origem do contato ou **campo do contato** — este último aceita tanto os campos fixos (`name`, `email`, `phone`, `notes`) quanto um campo personalizado via `cf:<id>`. Toda saída sem correspondência cai no ramo **default**.
+
+### Divisão aleatória / A-B
+
+Distribui a execução entre variantes ponderadas (A/B/C), de forma determinística por execução — o mesmo contato sempre cai na mesma variante dentro de uma execução já em andamento.
+
+### Perguntar
+
+Envia uma pergunta ao contato e pausa o fluxo aguardando a resposta (por texto ou botão), com timeout configurável. Se o contato não responder a tempo, o fluxo segue pelo ramo **timeout**.
 
 ## Variáveis
 
-As variáveis seguem o padrão `{{...}}` e são substituídas pelos valores do contexto no momento da execução. Em vez de uma lista fechada, pense em **categorias**:
+As variáveis seguem o padrão `{{...}}` e são substituídas pelos valores do contexto no momento da execução. Não há notação com ponto (`{{contact.name}}` **não funciona** — fica literal na saída): use sempre a chave plana.
 
-### Dados do contato
-
-Atributos do contato que disparou ou avançou no fluxo:
+### Dados do contato (chaves planas)
 
 ```
-{{contact.name}}    // Nome do contato
-{{contact.phone}}   // Telefone (formato E.164)
-{{contact.email}}   // Email do contato
+{{name}}            // Nome do contato
+{{phone}}           // Telefone
+{{email}}           // E-mail do contato (busca o contato no banco no momento da interpolação)
+{{company}}         // Empresa do contato
+{{notes}}           // Notas do contato
+{{stage}}           // Nome da etapa atual do card do contato no pipeline
+{{assigned_agent}}  // Nome do atendente responsável
+{{lastMessage}}     // Texto da última mensagem recebida
 ```
 
-Campos personalizados do contato também ficam disponíveis.
+### Dados de um gatilho "Webhook recebido"
 
-### Dados do gatilho
+Todo campo escalar (string, número ou booleano) do corpo recebido vira uma variável com o prefixo `webhook.`:
 
-Valores específicos do evento que iniciou o fluxo — por exemplo, os campos enviados na requisição de um **Webhook recebido**, a etapa de origem/destino em uma **Mudança de etapa**, ou a palavra-chave que casou em **Palavra-chave recebida**.
+```
+{{webhook.product}}     // Campo mapeado como "produto"
+{{webhook.amount}}      // Valor normalizado (número)
+{{webhook.status}}      // Status do evento recebido
+{{webhook.email}}       // E-mail extraído do payload
+{{webhook.document}}    // CPF/CNPJ extraído do payload
+{{webhook.externalId}}  // ID externo (dedup)
+{{webhook.eventType}}   // Tipo do evento (quando mapeado)
+{{webhook.phoneMissing}} // "1" quando não foi possível normalizar um telefone do payload
+```
+
+Qualquer outro campo do corpo recebido também vira `{{webhook.<nomeDoCampo>}}` automaticamente (não só os campos citados acima).
+
+### Dados do gatilho "Contato atualizado"
+
+```
+{{changedFields}}  // Lista separada por vírgula dos campos que mudaram (name, email, phone, notes)
+```
 
 ### Saída de nós (HTTP / IA)
 
-Resultados produzidos por nós anteriores do fluxo:
+Resultados produzidos por nós anteriores do fluxo, acessados pela variável de saída definida em cada nó:
 
-- A **variável de saída** de um nó **HTTP** (campos da resposta da API externa)
-- O texto gerado por um nó **Vistum IA**
+- `{{<outputVar>}}` — corpo bruto da resposta de um nó **HTTP** (truncado em 2000 caracteres)
+- `{{<outputVar>_<campo>}}` — campos escalares individuais do JSON de resposta de um nó **HTTP**
+- `{{aiResult}}` (ou o nome definido no nó) — texto gerado por um nó **Vistum IA**
 
 ## Limites e proteções
 
@@ -130,6 +193,7 @@ Cada automação aplica proteções para evitar loops, disparos duplicados e abu
 | Dedup 30s | Execuções repetidas da mesma automação para o mesmo contato dentro de 30 segundos são descartadas (anti-loop) |
 | `onlyOnce` | Opção que limita a automação a **uma execução por contato** (a partir da segunda, é ignorada) |
 | Rate limit | **50 execuções por hora** por instância de WhatsApp |
+| Chamadas HTTP por execução | Máximo de **3 chamadas** por execução do fluxo, somando o nó **HTTP** e a ação **Enviar Webhook** juntos. A 4ª chamada (de qualquer um dos dois tipos) é ignorada silenciosamente |
 
 ### Logs e histórico
 
