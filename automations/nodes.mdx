@@ -29,6 +29,7 @@ O gatilho define **quando** a automação entra em execução para um contato. T
 | Negócio perdido | O negócio do contato é marcado como perdido |
 | Mensagem recebida | O contato envia qualquer mensagem |
 | Palavra-chave recebida | A mensagem recebida contém uma palavra-chave configurada |
+| Mensagem veio de anúncio | O contato inicia a conversa clicando em um anúncio do WhatsApp (Click-to-WhatsApp). Detecta pelos metadados da Meta (ctwa_clid/referral), não pelo texto; filtros opcionais por ID do anúncio, tipo de origem e instância |
 | Sem resposta (X horas) | O contato não responde dentro de X horas |
 | Webhook recebido | Uma requisição externa chega no endpoint da automação |
 | Fora do horário de atendimento | Uma conversa de ingresso chega fora do expediente do departamento |
