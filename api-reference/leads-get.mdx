@@ -1,0 +1,37 @@
+---
+title: Buscar lead por ID
+api: "GET /api/v1/leads/{id}"
+description: Retorna um único contato (lead) do workspace pelo seu ID.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `leads:read`
+</ParamField>
+
+Retorna `{ data: LeadDTO }`. Responde `404 NOT_FOUND` se o contato não existir, estiver excluído ou pertencer a outro workspace.
+
+<RequestExample>
+```bash cURL
+curl https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": {
+    "id": "cnt_cmnl5abc123",
+    "name": "João Ferreira",
+    "phone": "5511999887766",
+    "email": "joao@empresa.com",
+    "notes": "Cliente indicado.",
+    "tags": [ { "id": "tag_quente01", "name": "lead-quente", "color": "#22c55e" } ],
+    "createdAt": "2026-07-01T12:00:00.000Z",
+    "updatedAt": "2026-07-02T09:30:00.000Z"
+  }
+}
+```
+</ResponseExample>

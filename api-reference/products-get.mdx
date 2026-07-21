@@ -1,0 +1,26 @@
+---
+title: Buscar produto por ID
+api: "GET /api/v1/products/{id}"
+description: Retorna um único produto do catálogo do workspace pelo seu ID.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `products:read`
+</ParamField>
+
+Retorna `{ data: ProductDTO }`. Responde `404 NOT_FOUND` se o produto não existir no workspace.
+
+<RequestExample>
+```bash cURL
+curl https://crm.vistum.com.br/api/v1/products/prod_x1 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "prod_x1", "name": "Plano PRO", "sku": "PRO-2026", "price": "199.90", "active": true, "description": "Assinatura anual", "createdAt": "2026-06-01T10:00:00.000Z" } }
+```
+</ResponseExample>

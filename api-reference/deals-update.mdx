@@ -1,0 +1,56 @@
+---
+title: Atualizar negócio
+api: "PATCH /api/v1/deals/{id}"
+description: Endpoint único para todas as mutações de um negócio — renomear, revalorizar, mover de etapa, marcar ganho/perdido e restaurar.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `deals:write`
+</ParamField>
+
+Um único endpoint concentra todas as mutações do negócio. Envie **ao menos um** campo. As ações abaixo são combinações de campos deste mesmo `PATCH`:
+
+- **Mover de etapa** → envie `stageId`.
+- **Marcar como ganho** → envie `status: "won"`.
+- **Marcar como perdido** → envie `status: "lost"` + `lostReason`.
+- **Restaurar** (reabrir) → envie `status: "open"` (limpa `closedAt`).
+
+## Body
+
+<ParamField body="name" type="string">Renomeia o negócio.</ParamField>
+<ParamField body="value" type="number">Novo valor (`>= 0` ou `null`).</ParamField>
+<ParamField body="stageId" type="string">**Move** o negócio para outra etapa. Registra histórico e dispara o webhook `card.moved` + automação `stage_changed`.</ParamField>
+<ParamField body="assignedTo" type="string">ID do responsável, ou `null` para remover. Precisa ser membro do workspace.</ParamField>
+<ParamField body="status" type="string">`open`, `won` ou `lost`. `won`/`lost` marcam `closedAt`; `open` **restaura** (limpa `closedAt`). Dispara `card.won`/`card.lost` + automação `deal_won`/`deal_lost`.</ParamField>
+<ParamField body="lostReason" type="string">**Obrigatório** quando `status` = `lost`.</ParamField>
+<ParamField body="customValues" type="object">Atualiza campos personalizados (mesma validação do create).</ParamField>
+
+<Note>
+  Transições de status e movimentação de etapa são **atômicas**: dois PATCH concorrentes idênticos não disparam o webhook/automação duas vezes.
+</Note>
+
+<RequestExample>
+```bash Mover de etapa
+curl -X PATCH https://crm.vistum.com.br/api/v1/deals/card_def456ghi \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "stageId": "stage_propost02" }'
+```
+
+```bash Marcar como perdido
+curl -X PATCH https://crm.vistum.com.br/api/v1/deals/card_def456ghi \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "status": "lost", "lostReason": "Sem orçamento" }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — Atualizado
+{ "data": { "id": "card_def456ghi", "status": "lost", "lostReason": "Sem orçamento", "closedAt": "2026-07-21T18:00:00.000Z", "...": "..." } }
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION`, `404 STAGE_NOT_FOUND`, `404 NOT_FOUND`, `400 ASSIGNEE_NOT_FOUND`.

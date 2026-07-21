@@ -1,0 +1,26 @@
+---
+title: Excluir lead
+api: "DELETE /api/v1/leads/{id}"
+description: Faz soft-delete de um contato (lead) do workspace. O contato deixa de aparecer na API e no CRM.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `leads:delete`
+</ParamField>
+
+Faz **soft-delete**. Retorna `{ data: { id, deletedAt } }`. Rate limit: perfil de exclusão (fail-closed). Excluir algo já excluído → `404 NOT_FOUND`.
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "cnt_cmnl5abc123", "deletedAt": "2026-07-21T18:05:00.000Z" } }
+```
+</ResponseExample>

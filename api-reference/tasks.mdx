@@ -1,19 +1,18 @@
 ---
-title: Tarefas
-description: Gerencie tarefas e follow-ups — listar, criar, editar, concluir e excluir. Podem ser vinculadas a um contato e/ou negócio.
+title: Listar tarefas
+api: "GET /api/v1/tasks"
+description: Lista tarefas e follow-ups do workspace com filtros por contato, negócio, status, responsável e vencimento.
 ---
 
 Uma **tarefa** (`Task`) é um follow-up com prazo, opcionalmente vinculado a um contato e/ou negócio e atribuído a um membro.
 
-<Info>
-  **Autenticação** — `Authorization: Bearer vg_live_<sua_chave>`. Leitura exige `tasks:read`; criar, editar, concluir e excluir exigem `tasks:write`.
-</Info>
+## Autenticação
 
-## Listar tarefas
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `tasks:read`
+</ParamField>
 
-<code>GET /api/v1/tasks</code> · Escopo `tasks:read` · Rate limit: perfil de leitura
-
-### Parâmetros de query
+## Parâmetros de query
 
 | Parâmetro | Tipo | Descrição |
 |-----------|------|-----------|
@@ -54,67 +53,3 @@ curl "https://crm.vistum.com.br/api/v1/tasks?status=pending&sort=dueAt&order=asc
 }
 ```
 </ResponseExample>
-
-## Criar tarefa
-
-<code>POST /api/v1/tasks</code> · Escopo `tasks:write` · Rate limit: perfil de escrita
-
-<ParamField body="title" type="string" required>Título da tarefa (até 300 caracteres).</ParamField>
-<ParamField body="dueDate" type="string (ISO)" required>Data/hora de vencimento. Aceita também `dueAt`.</ParamField>
-<ParamField body="description" type="string">Descrição (até 2000 caracteres).</ParamField>
-<ParamField body="type" type="string">Tipo livre (ex: `call`, `email`), até 64 caracteres.</ParamField>
-<ParamField body="contactId" type="string">ID de um contato do workspace.</ParamField>
-<ParamField body="cardId" type="string">ID de um negócio do workspace.</ParamField>
-<ParamField body="assignedTo" type="string">ID do usuário ou nome de um membro do workspace.</ParamField>
-
-<RequestExample>
-```bash cURL
-curl -X POST https://crm.vistum.com.br/api/v1/tasks \
-  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Ligar para retomar proposta",
-    "dueDate": "2026-07-22T13:00:00.000Z",
-    "type": "call",
-    "cardId": "card_def456ghi",
-    "assignedTo": "Carlos Atendente"
-  }'
-```
-</RequestExample>
-
-<ResponseExample>
-```json 201 — Criado
-{ "data": { "id": "task_1", "title": "Ligar para retomar proposta", "status": "pending", "dueDate": "2026-07-22T13:00:00.000Z", "...": "..." } }
-```
-</ResponseExample>
-
-**Erros:** `400 VALIDATION`, `400 ASSIGNEE_NOT_FOUND`, `400 CONTACT_NOT_FOUND`, `400 CARD_NOT_FOUND`, `422 NO_AUTHOR` (workspace sem membros para autorar a tarefa).
-
-## Buscar tarefa
-
-<code>GET /api/v1/tasks/{id}</code> · Escopo `tasks:read`
-
-Retorna `{ data: TaskDTO }`. `404` se não existir no workspace.
-
-## Editar / concluir tarefa
-
-<code>PATCH /api/v1/tasks/{id}</code> · Escopo `tasks:write`
-
-Envie **ao menos um** campo: `title`, `description`, `type`, `dueDate`, `status` (`pending`/`done`), `assignedTo`, `contactId`, `cardId`. Vínculos aceitam `null` para desassociar.
-
-<RequestExample>
-```bash Concluir tarefa
-curl -X PATCH https://crm.vistum.com.br/api/v1/tasks/task_1 \
-  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
-  -H "Content-Type: application/json" \
-  -d '{ "status": "done" }'
-```
-</RequestExample>
-
-**Erros:** `400 VALIDATION`, `400 ASSIGNEE_NOT_FOUND`, `400 CONTACT_NOT_FOUND`, `400 CARD_NOT_FOUND`, `404 NOT_FOUND`.
-
-## Excluir tarefa
-
-<code>DELETE /api/v1/tasks/{id}</code> · Escopo `tasks:write` · Rate limit: perfil de exclusão
-
-Retorna `{ data: { id, deleted: true } }`.

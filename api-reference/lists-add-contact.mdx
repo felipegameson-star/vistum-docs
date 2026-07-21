@@ -1,0 +1,32 @@
+---
+title: Adicionar contato à lista
+api: "POST /api/v1/lists/{id}/contacts"
+description: Adiciona um ou mais contatos a uma lista existente.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `lists:write`
+</ParamField>
+
+## Body
+
+<ParamField body="contactIds" type="string[]" required>IDs de contatos válidos do workspace (até 500). IDs de outro tenant, grupos ou excluídos são ignorados.</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/lists/list_bf01/contacts \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "contactIds": ["cnt_c", "cnt_d"] }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "listId": "list_bf01", "added": 2, "contactCount": 344 } }
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION`, `400 NO_VALID_CONTACTS` (nenhum contato válido no workspace).

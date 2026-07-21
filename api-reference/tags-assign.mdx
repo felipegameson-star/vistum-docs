@@ -1,0 +1,44 @@
+---
+title: Atribuir tag a um lead
+api: "POST /api/v1/leads/{id}/tags"
+description: Aplica uma ou mais tags a um contato (lead). Adiciona sem substituir o conjunto existente.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `tags:write`
+</ParamField>
+
+Aplica tags a um contato. Envie `tagIds` (IDs existentes) e/ou `names` (criadas por upsert se não existirem). Ambos são deduplicados, máximo 50 por requisição. As tags são **adicionadas** ao contato, sem substituir as já aplicadas.
+
+## Body
+
+<ParamField body="tagIds" type="string[]">IDs de tags existentes no workspace.</ParamField>
+<ParamField body="names" type="string[]">Nomes de tags — criadas automaticamente se não existirem.</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123/tags \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "names": ["vip", "instagram"] }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": {
+    "contactId": "cnt_cmnl5abc123",
+    "added": 2,
+    "tags": [
+      { "id": "tag_vip99", "name": "vip", "color": "#f59e0b" },
+      { "id": "tag_ig01", "name": "instagram", "color": "#22c55e" }
+    ]
+  }
+}
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION`, `400 NO_VALID_TAGS` (nenhuma tag válida), `404` (contato não encontrado).

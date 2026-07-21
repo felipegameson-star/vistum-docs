@@ -1,0 +1,45 @@
+---
+title: Atualizar lead
+api: "PATCH /api/v1/leads/{id}"
+description: Atualiza nome, e-mail, observações ou o conjunto de tags de um contato (lead). Envie ao menos um campo.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `leads:write`
+</ParamField>
+
+## Body
+
+Envie **ao menos um** campo.
+
+<ParamField body="name" type="string | null">Nome (até 200 caracteres). `null` limpa.</ParamField>
+<ParamField body="email" type="string | null">E-mail (até 320 caracteres). `null` limpa.</ParamField>
+<ParamField body="notes" type="string | null">Observações (até 10000 caracteres). `null` limpa.</ParamField>
+<ParamField body="tags" type="string[]">**Substitui** o conjunto de tags do contato (nomes; até 20, deduplicados). Tags inexistentes são criadas. Para adicionar sem substituir, use [Atribuir tag a um lead](/api-reference/tags-assign).</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X PATCH https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "joao.novo@empresa.com", "notes": "Atualizado via API." }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": {
+    "id": "cnt_cmnl5abc123",
+    "name": "João Ferreira",
+    "phone": "5511999887766",
+    "email": "joao.novo@empresa.com",
+    "notes": "Atualizado via API."
+  }
+}
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION`, `404 NOT_FOUND`.

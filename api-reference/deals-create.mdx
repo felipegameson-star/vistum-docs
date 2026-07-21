@@ -1,0 +1,77 @@
+---
+title: Criar negócio
+api: "POST /api/v1/deals"
+description: Cria um negócio (card do pipeline) para um contato já existente no workspace.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `deals:write`
+</ParamField>
+
+Cria um negócio para um contato **já existente** no workspace. Para criar contato + negócio de uma vez a partir de uma integração, use [Criar lead](/api-reference/leads).
+
+## Body
+
+<ParamField body="contactId" type="string" required>
+  ID de um contato existente no workspace. Obrigatório. Contato inexistente, excluído ou de outro tenant → `404 CONTACT_NOT_FOUND`.
+</ParamField>
+
+<ParamField body="pipeline" type="string" required>
+  ID **ou** nome do pipeline (case-insensitive) onde o negócio será criado.
+</ParamField>
+
+<ParamField body="stage" type="string">
+  ID ou nome da etapa. Se omitido, o negócio vai para a **primeira etapa** do pipeline.
+</ParamField>
+
+<ParamField body="name" type="string">
+  Nome do negócio (até 200 caracteres). Se omitido, usa o nome ou telefone do contato.
+</ParamField>
+
+<ParamField body="value" type="number">
+  Valor em BRL. Número `>= 0` ou `null`.
+</ParamField>
+
+<ParamField body="origin" type="string">
+  Origem do negócio (até 64 caracteres). Padrão: `"api"`.
+</ParamField>
+
+<ParamField body="product" type="string">
+  ID ou nome do produto. Se o nome não existir no workspace, o produto é **criado automaticamente**.
+</ParamField>
+
+<ParamField body="assignedTo" type="string">
+  ID do usuário **ou** nome de um membro do workspace (case-insensitive). Não sendo membro → `400 ASSIGNEE_NOT_FOUND`.
+</ParamField>
+
+<ParamField body="customValues" type="object">
+  Valores de campos personalizados. Só chaves definidas como campo personalizado do pipeline (ou global) são gravadas — chaves desconhecidas são **descartadas silenciosamente**. Valores aceitos: string, número, boolean ou array de primitivos. Objeto aninhado → `400 VALIDATION`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/deals \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contactId": "cnt_cmnl5abc123",
+    "pipeline": "Vendas",
+    "stage": "Qualificação",
+    "name": "Proposta plano PRO",
+    "value": 2500,
+    "product": "Plano PRO",
+    "assignedTo": "Carlos Atendente",
+    "customValues": { "cidade": "São Paulo" }
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 — Criado
+{ "data": { "id": "card_novo789", "name": "Proposta plano PRO", "status": "open", "...": "..." } }
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION`, `404 CONTACT_NOT_FOUND`, `404 PIPELINE_NOT_FOUND`, `404 STAGE_NOT_FOUND`, `422 PIPELINE_EMPTY` (pipeline sem etapas), `400 ASSIGNEE_NOT_FOUND`, `402 DEAL_LIMIT_REACHED` (cota de negócios do plano atingida).

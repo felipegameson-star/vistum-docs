@@ -1,0 +1,26 @@
+---
+title: Remover tag de um lead
+api: "DELETE /api/v1/leads/{id}/tags/{tagId}"
+description: Remove uma tag específica de um contato (lead).
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `tags:write`
+</ParamField>
+
+Remove uma tag do contato. Rate limit: perfil de exclusão. `removed` é `false` se a tag não estava aplicada ao contato.
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123/tags/tag_vip99 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "contactId": "cnt_cmnl5abc123", "tagId": "tag_vip99", "removed": true } }
+```
+</ResponseExample>

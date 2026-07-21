@@ -1,0 +1,28 @@
+---
+title: Finalizar atendimento
+api: "POST /api/v1/conversations/{id}/finish"
+description: Encerra o atendimento — marca a conversa como fechada. Idempotente.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `conversations:send`
+</ParamField>
+
+Encerra o atendimento (mesma ação do botão "finalizar" do chat): marca a conversa como fechada e encerra a sessão de atendimento. **Idempotente** — finalizar uma conversa já fechada retorna o mesmo estado.
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/conversations/conv_1/finish \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "conv_1", "status": "closed" } }
+```
+</ResponseExample>
+
+`404 NOT_FOUND` se a conversa não existir no workspace.

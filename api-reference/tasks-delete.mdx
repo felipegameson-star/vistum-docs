@@ -1,0 +1,26 @@
+---
+title: Excluir tarefa
+api: "DELETE /api/v1/tasks/{id}"
+description: Exclui uma tarefa do workspace.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `tasks:write`
+</ParamField>
+
+Retorna `{ data: { id, deleted: true } }`. Rate limit: perfil de exclusão.
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://crm.vistum.com.br/api/v1/tasks/task_1 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "task_1", "deleted": true } }
+```
+</ResponseExample>

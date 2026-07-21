@@ -1,0 +1,26 @@
+---
+title: Buscar tarefa por ID
+api: "GET /api/v1/tasks/{id}"
+description: Retorna uma única tarefa do workspace pelo seu ID.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `tasks:read`
+</ParamField>
+
+Retorna `{ data: TaskDTO }`. Responde `404 NOT_FOUND` se a tarefa não existir no workspace.
+
+<RequestExample>
+```bash cURL
+curl https://crm.vistum.com.br/api/v1/tasks/task_1 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "task_1", "title": "Ligar para retomar proposta", "status": "pending", "dueDate": "2026-07-22T13:00:00.000Z", "...": "..." } }
+```
+</ResponseExample>

@@ -1,0 +1,26 @@
+---
+title: Excluir negócio
+api: "DELETE /api/v1/deals/{id}"
+description: Faz soft-delete de um negócio. O card some do funil e da API e a cota do plano é liberada.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `deals:delete`
+</ParamField>
+
+Faz **soft-delete**: o negócio some do funil e da API e a cota do plano é liberada. Rate limit: perfil de exclusão (fail-closed). Excluir algo já excluído → `404`.
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://crm.vistum.com.br/api/v1/deals/card_def456ghi \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "card_def456ghi", "deletedAt": "2026-07-21T18:05:00.000Z" } }
+```
+</ResponseExample>

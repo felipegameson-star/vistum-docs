@@ -1,0 +1,26 @@
+---
+title: Excluir anotação
+api: "DELETE /api/v1/leads/{id}/notes/{noteId}"
+description: Exclui uma anotação de um contato (lead).
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `notes:write`
+</ParamField>
+
+Retorna `{ data: { id, deleted: true } }`. Rate limit: perfil de exclusão. `404` se a anotação não pertencer ao contato.
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123/notes/note_2 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "note_2", "deleted": true } }
+```
+</ResponseExample>

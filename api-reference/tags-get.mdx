@@ -1,0 +1,26 @@
+---
+title: Buscar tag por ID
+api: "GET /api/v1/tags/{id}"
+description: Retorna uma única tag do workspace pelo seu ID.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `tags:read`
+</ParamField>
+
+Retorna `{ data: { id, name, color, createdAt } }`. Responde `404 NOT_FOUND` se a tag não existir no workspace.
+
+<RequestExample>
+```bash cURL
+curl https://crm.vistum.com.br/api/v1/tags/tag_vip99 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "tag_vip99", "name": "vip", "color": "#f59e0b", "createdAt": "2026-07-21T18:00:00.000Z" } }
+```
+</ResponseExample>

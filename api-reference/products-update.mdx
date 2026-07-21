@@ -1,0 +1,38 @@
+---
+title: Atualizar produto
+api: "PATCH /api/v1/products/{id}"
+description: Edita nome, descrição, SKU, preço ou status ativo de um produto. Envie ao menos um campo.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `products:write`
+</ParamField>
+
+## Body
+
+Envie **ao menos um** campo: `name`, `description`, `sku`, `price`, `active`. Para limpar `description`/`sku`/`price`, envie `null`.
+
+<ParamField body="name" type="string">Nome do produto (até 200 caracteres).</ParamField>
+<ParamField body="description" type="string | null">Descrição (até 2000 caracteres). `null` limpa.</ParamField>
+<ParamField body="sku" type="string | null">Código/SKU (até 120 caracteres). `null` limpa.</ParamField>
+<ParamField body="price" type="string | number | null">Preço decimal `>= 0`. `null` limpa.</ParamField>
+<ParamField body="active" type="boolean">Ativa ou desativa o produto.</ParamField>
+
+<RequestExample>
+```bash Desativar produto
+curl -X PATCH https://crm.vistum.com.br/api/v1/products/prod_x1 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "active": false }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "prod_x1", "name": "Plano PRO", "active": false, "...": "..." } }
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION`, `400 INVALID_PRICE`, `404 NOT_FOUND`.

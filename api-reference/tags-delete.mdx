@@ -1,0 +1,26 @@
+---
+title: Excluir tag
+api: "DELETE /api/v1/tags/{id}"
+description: Exclui uma tag do workspace. Falha se a tag estiver em uso por disparos em andamento.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `tags:write`
+</ParamField>
+
+Retorna `{ data: { id, deleted: true } }`. Rate limit: perfil de exclusão. Se a tag estiver em uso por disparos em andamento → `409 TAG_IN_USE`.
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://crm.vistum.com.br/api/v1/tags/tag_vip99 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "tag_vip99", "deleted": true } }
+```
+</ResponseExample>

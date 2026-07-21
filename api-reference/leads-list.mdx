@@ -1,0 +1,61 @@
+---
+title: Buscar leads
+api: "GET /api/v1/leads"
+description: Lista os contatos (leads) do workspace com filtros por busca, tag, pipeline, etapa, status e datas. Retorna o envelope { data, pagination }.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `leads:read`
+</ParamField>
+
+<Note>
+  Só contatos **canônicos** aparecem: contatos mesclados, excluídos (soft-delete) e grupos de WhatsApp (`@g.us`) nunca são retornados.
+</Note>
+
+## Parâmetros de query
+
+| Parâmetro | Tipo | Descrição |
+|-----------|------|-----------|
+| `q` | string | Busca por nome, telefone ou e-mail. |
+| `tag` | string | ID ou nome de uma tag — filtra contatos com essa tag. |
+| `pipelineId` | string | Contatos com um negócio neste pipeline. |
+| `stageId` | string | Contatos com um negócio nesta etapa. |
+| `status` | string | Status do negócio associado (`open`/`won`/`lost`). |
+| `createdAfter` / `createdBefore` | string (ISO) | Filtro por criação. |
+| `updatedAfter` | string (ISO) | Atualizados a partir desta data. |
+| `sort` | string | Coluna de ordenação (padrão `createdAt`). |
+| `order` | string | `asc` ou `desc` (padrão). |
+| `limit` / `offset` | number | Paginação (1–100, padrão 25). |
+
+<Note>
+  `pipelineId`, `stageId` e `status` descrevem **um mesmo negócio** que deve casar com todos os critérios ao mesmo tempo.
+</Note>
+
+<RequestExample>
+```bash cURL
+curl "https://crm.vistum.com.br/api/v1/leads?q=joao&tag=lead-quente&limit=25" \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": [
+    {
+      "id": "cnt_cmnl5abc123",
+      "name": "João Ferreira",
+      "phone": "5511999887766",
+      "email": "joao@empresa.com",
+      "notes": "Cliente indicado.",
+      "tags": [ { "id": "tag_quente01", "name": "lead-quente", "color": "#22c55e" } ],
+      "createdAt": "2026-07-01T12:00:00.000Z",
+      "updatedAt": "2026-07-02T09:30:00.000Z"
+    }
+  ],
+  "pagination": { "total": 1, "limit": 25, "offset": 0, "hasMore": false }
+}
+```
+</ResponseExample>

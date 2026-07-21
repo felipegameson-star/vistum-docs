@@ -1,0 +1,51 @@
+---
+title: Enviar mensagem
+api: "POST /api/v1/conversations/{id}/messages"
+description: Envia uma mensagem de texto pela conversa, respeitando a janela de 24h e a cota diária do plano.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `conversations:send` (escopo dedicado, sem herança de `conversations:read`)
+</ParamField>
+
+Envia uma mensagem de **texto** pela conversa, reusando a mesma infra do chat humano: mesma checagem de janela de 24h, mesma cota diária de mensagens do plano e mesmo tratamento de erro do provedor. Rate limit: perfil de envio (teto absoluto **15 mensagens/min por chave**, fail-closed).
+
+<Warning>
+  **Somente texto, dentro da janela de 24h.** Mídia e templates não são suportados nesta versão. Na API Oficial (Cloud), fora da janela de 24h só é possível enviar um template aprovado — que este endpoint não faz (retorna `422 WINDOW_CLOSED`). Cada envio **consome a cota diária de mensagens** do plano.
+</Warning>
+
+## Body
+
+<ParamField body="text" type="string" required>Texto da mensagem (1 a 4096 caracteres).</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/conversations/conv_1/messages \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "text": "Olá! Recebemos seu comprovante, obrigado." }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 — Enviada
+{ "data": { "id": "msg_10", "status": "sent" } }
+```
+</ResponseExample>
+
+### Erros de envio
+
+| Código HTTP | `code` | Causa |
+|-------------|--------|-------|
+| `404` | `NOT_FOUND` | Conversa inexistente ou de outro workspace. |
+| `409` | `INSTANCE_ARCHIVED` | A conexão foi arquivada. |
+| `422` | `CHANNEL_UNSUPPORTED` | Envio pela API só é suportado no WhatsApp nesta versão. |
+| `422` | `INSTANCE_NOT_READY` | Instância da API Oficial sem credenciais configuradas. |
+| `422` | `WINDOW_CLOSED` | Janela de 24h fechada (Cloud) — só template aprovado seria aceito. |
+| `422` | `INSTANCE_DISCONNECTED` | WhatsApp desconectado (Evolution). |
+| `422` | `NUMBER_INVALID` | Número inválido ou sem WhatsApp. |
+| `429` | `MESSAGE_LIMIT_REACHED` | Cota diária de mensagens do plano atingida. |
+| `402` | `SUBSCRIPTION_INACTIVE` | Assinatura inativa. |
+| `502` | `SEND_FAILED` | Falha do provedor no envio. |

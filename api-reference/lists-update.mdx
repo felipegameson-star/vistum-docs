@@ -1,0 +1,30 @@
+---
+title: Atualizar lista
+api: "PATCH /api/v1/lists/{id}"
+description: Renomeia uma lista de contatos.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `lists:write`
+</ParamField>
+
+## Body
+
+<ParamField body="name" type="string" required>Novo nome (até 120 caracteres).</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X PATCH https://crm.vistum.com.br/api/v1/lists/list_bf01 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Black Friday 2026 — VIP" }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "list_bf01", "name": "Black Friday 2026 — VIP", "contactCount": 342, "createdAt": "2026-07-01T10:00:00.000Z" } }
+```
+</ResponseExample>

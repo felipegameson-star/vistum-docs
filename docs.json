@@ -12,6 +12,12 @@
     "light": "#818cf8",
     "dark": "#4f46e5"
   },
+  "redirects": [
+    {
+      "source": "/api-reference/leads-manage",
+      "destination": "/api-reference/leads-list"
+    }
+  ],
   "navigation": {
     "tabs": [
       {
@@ -36,31 +42,53 @@
             "group": "Leads",
             "pages": [
               "api-reference/leads",
-              "api-reference/leads-manage"
+              "api-reference/leads-list",
+              "api-reference/leads-get",
+              "api-reference/leads-update",
+              "api-reference/leads-delete"
             ]
           },
           {
             "group": "Negócios",
             "pages": [
-              "api-reference/deals"
+              "api-reference/deals",
+              "api-reference/deals-create",
+              "api-reference/deals-get",
+              "api-reference/deals-update",
+              "api-reference/deals-delete"
             ]
           },
           {
             "group": "Tags",
             "pages": [
-              "api-reference/tags"
+              "api-reference/tags",
+              "api-reference/tags-create",
+              "api-reference/tags-get",
+              "api-reference/tags-update",
+              "api-reference/tags-delete",
+              "api-reference/tags-assign",
+              "api-reference/tags-remove"
             ]
           },
           {
             "group": "Listas",
             "pages": [
-              "api-reference/lists"
+              "api-reference/lists",
+              "api-reference/lists-create",
+              "api-reference/lists-get",
+              "api-reference/lists-update",
+              "api-reference/lists-delete",
+              "api-reference/lists-add-contact",
+              "api-reference/lists-remove-contact"
             ]
           },
           {
             "group": "Anotações",
             "pages": [
-              "api-reference/notes"
+              "api-reference/notes",
+              "api-reference/notes-create",
+              "api-reference/notes-update",
+              "api-reference/notes-delete"
             ]
           },
           {
@@ -90,13 +118,21 @@
           {
             "group": "Produtos",
             "pages": [
-              "api-reference/products"
+              "api-reference/products",
+              "api-reference/products-create",
+              "api-reference/products-get",
+              "api-reference/products-update",
+              "api-reference/products-delete"
             ]
           },
           {
             "group": "Tarefas",
             "pages": [
-              "api-reference/tasks"
+              "api-reference/tasks",
+              "api-reference/tasks-create",
+              "api-reference/tasks-get",
+              "api-reference/tasks-update",
+              "api-reference/tasks-delete"
             ]
           },
           {
@@ -108,7 +144,10 @@
           {
             "group": "Conversas",
             "pages": [
-              "api-reference/conversations"
+              "api-reference/conversations",
+              "api-reference/conversations-get",
+              "api-reference/conversations-send",
+              "api-reference/conversations-finish"
             ]
           },
           {

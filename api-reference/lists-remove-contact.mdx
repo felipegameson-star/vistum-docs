@@ -1,0 +1,26 @@
+---
+title: Remover contato da lista
+api: "DELETE /api/v1/lists/{id}/contacts/{contactId}"
+description: Remove um contato específico de uma lista.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `lists:write`
+</ParamField>
+
+Remove um contato da lista. Rate limit: perfil de exclusão.
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://crm.vistum.com.br/api/v1/lists/list_bf01/contacts/cnt_c \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "listId": "list_bf01", "contactId": "cnt_c", "removed": true, "contactCount": 343 } }
+```
+</ResponseExample>

@@ -1,0 +1,33 @@
+---
+title: Criar lista
+api: "POST /api/v1/lists"
+description: Cria uma nova lista de contatos, opcionalmente já com contatos incluídos.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `lists:write`
+</ParamField>
+
+## Body
+
+<ParamField body="name" type="string" required>Nome da lista (até 120 caracteres).</ParamField>
+<ParamField body="contactIds" type="string[]">IDs de contatos para já incluir (opcional, até 500). A lista pode nascer vazia.</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/lists \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Black Friday 2026", "contactIds": ["cnt_a", "cnt_b"] }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 — Criado
+{ "data": { "id": "list_bf01", "name": "Black Friday 2026", "contactCount": 2, "createdAt": "2026-07-21T18:00:00.000Z" } }
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION`, `402 LIST_LIMIT_REACHED` (cota de listas do plano atingida), `402 SUBSCRIPTION_INACTIVE`.

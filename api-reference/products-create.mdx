@@ -1,0 +1,35 @@
+---
+title: Criar produto
+api: "POST /api/v1/products"
+description: Cria um novo produto no catálogo do workspace. O produto nasce ativo.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `products:write`
+</ParamField>
+
+## Body
+
+<ParamField body="name" type="string" required>Nome do produto (até 200 caracteres).</ParamField>
+<ParamField body="description" type="string">Descrição (até 2000 caracteres).</ParamField>
+<ParamField body="sku" type="string">Código/SKU (até 120 caracteres).</ParamField>
+<ParamField body="price" type="string | number">Preço decimal `>= 0` com até 2 casas. Aceita string (`"199.90"`) ou número. O produto nasce **ativo**.</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/products \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Plano PRO", "sku": "PRO-2026", "price": "199.90" }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 — Criado
+{ "data": { "id": "prod_x1", "name": "Plano PRO", "sku": "PRO-2026", "price": "199.90", "active": true, "createdAt": "2026-07-21T18:00:00.000Z", "description": null } }
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION`, `400 INVALID_PRICE` (preço fora do formato decimal aceito).

@@ -1,19 +1,18 @@
 ---
-title: Produtos
-description: Gerencie o catálogo de produtos do workspace — listar, criar, editar e excluir.
+title: Listar produtos
+api: "GET /api/v1/products"
+description: Lista o catálogo de produtos do workspace com filtros por busca, status ativo e ordenação.
 ---
 
 Um **produto** (`WorkspaceProduct`) representa um item do catálogo do workspace, associável a negócios.
 
-<Info>
-  **Autenticação** — `Authorization: Bearer vg_live_<sua_chave>`. Leitura exige `products:read`; criar, editar e excluir exigem `products:write`.
-</Info>
+## Autenticação
 
-## Listar produtos
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `products:read`
+</ParamField>
 
-<code>GET /api/v1/products</code> · Escopo `products:read` · Rate limit: perfil de leitura
-
-### Parâmetros de query
+## Parâmetros de query
 
 | Parâmetro | Tipo | Descrição |
 |-----------|------|-----------|
@@ -44,58 +43,3 @@ curl "https://crm.vistum.com.br/api/v1/products?active=true&sort=price&order=des
 <Note>
   `price` é sempre **string decimal** (ex: `"199.90"`) ou `null`.
 </Note>
-
-## Criar produto
-
-<code>POST /api/v1/products</code> · Escopo `products:write` · Rate limit: perfil de escrita
-
-<ParamField body="name" type="string" required>Nome do produto (até 200 caracteres).</ParamField>
-<ParamField body="description" type="string">Descrição (até 2000 caracteres).</ParamField>
-<ParamField body="sku" type="string">Código/SKU (até 120 caracteres).</ParamField>
-<ParamField body="price" type="string | number">Preço decimal `>= 0` com até 2 casas. Aceita string (`"199.90"`) ou número. O produto nasce **ativo**.</ParamField>
-
-<RequestExample>
-```bash cURL
-curl -X POST https://crm.vistum.com.br/api/v1/products \
-  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
-  -H "Content-Type: application/json" \
-  -d '{ "name": "Plano PRO", "sku": "PRO-2026", "price": "199.90" }'
-```
-</RequestExample>
-
-<ResponseExample>
-```json 201 — Criado
-{ "data": { "id": "prod_x1", "name": "Plano PRO", "sku": "PRO-2026", "price": "199.90", "active": true, "createdAt": "2026-07-21T18:00:00.000Z", "description": null } }
-```
-</ResponseExample>
-
-**Erros:** `400 VALIDATION`, `400 INVALID_PRICE` (preço fora do formato decimal aceito).
-
-## Buscar produto
-
-<code>GET /api/v1/products/{id}</code> · Escopo `products:read`
-
-Retorna `{ data: ProductDTO }`. `404` se não existir no workspace.
-
-## Editar produto
-
-<code>PATCH /api/v1/products/{id}</code> · Escopo `products:write`
-
-Envie **ao menos um** campo: `name`, `description`, `sku`, `price`, `active`. Para limpar `description`/`sku`/`price`, envie `null`.
-
-<RequestExample>
-```bash Desativar produto
-curl -X PATCH https://crm.vistum.com.br/api/v1/products/prod_x1 \
-  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
-  -H "Content-Type: application/json" \
-  -d '{ "active": false }'
-```
-</RequestExample>
-
-**Erros:** `400 VALIDATION`, `400 INVALID_PRICE`, `404 NOT_FOUND`.
-
-## Excluir produto
-
-<code>DELETE /api/v1/products/{id}</code> · Escopo `products:write` · Rate limit: perfil de exclusão
-
-Retorna `{ data: { id, deleted: true } }`.

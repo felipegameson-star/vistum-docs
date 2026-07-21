@@ -1,0 +1,33 @@
+---
+title: Criar tag
+api: "POST /api/v1/tags"
+description: Cria uma nova etiqueta (tag) colorida no workspace.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `tags:write`
+</ParamField>
+
+## Body
+
+<ParamField body="name" type="string" required>Nome da tag (até 64 caracteres).</ParamField>
+<ParamField body="color" type="string">Cor em hex de 6 dígitos, ex: `#22c55e`. Padrão: `#22c55e`.</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/tags \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "vip", "color": "#f59e0b" }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 — Criado
+{ "data": { "id": "tag_vip99", "name": "vip", "color": "#f59e0b", "createdAt": "2026-07-21T18:00:00.000Z" } }
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION` (nome/cor inválidos), `409 TAG_EXISTS` (já existe tag com esse nome).

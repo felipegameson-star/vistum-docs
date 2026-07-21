@@ -1,0 +1,44 @@
+---
+title: Criar tarefa
+api: "POST /api/v1/tasks"
+description: Cria uma tarefa (follow-up com prazo), opcionalmente vinculada a um contato e/ou negócio.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `tasks:write`
+</ParamField>
+
+## Body
+
+<ParamField body="title" type="string" required>Título da tarefa (até 300 caracteres).</ParamField>
+<ParamField body="dueDate" type="string (ISO)" required>Data/hora de vencimento. Aceita também `dueAt`.</ParamField>
+<ParamField body="description" type="string">Descrição (até 2000 caracteres).</ParamField>
+<ParamField body="type" type="string">Tipo livre (ex: `call`, `email`), até 64 caracteres.</ParamField>
+<ParamField body="contactId" type="string">ID de um contato do workspace.</ParamField>
+<ParamField body="cardId" type="string">ID de um negócio do workspace.</ParamField>
+<ParamField body="assignedTo" type="string">ID do usuário ou nome de um membro do workspace.</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/tasks \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Ligar para retomar proposta",
+    "dueDate": "2026-07-22T13:00:00.000Z",
+    "type": "call",
+    "cardId": "card_def456ghi",
+    "assignedTo": "Carlos Atendente"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 — Criado
+{ "data": { "id": "task_1", "title": "Ligar para retomar proposta", "status": "pending", "dueDate": "2026-07-22T13:00:00.000Z", "...": "..." } }
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION`, `400 ASSIGNEE_NOT_FOUND`, `400 CONTACT_NOT_FOUND`, `400 CARD_NOT_FOUND`, `422 NO_AUTHOR` (workspace sem membros para autorar a tarefa).

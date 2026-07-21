@@ -1,0 +1,30 @@
+---
+title: Atualizar anotação
+api: "PATCH /api/v1/leads/{id}/notes/{noteId}"
+description: Edita o conteúdo de uma anotação existente de um contato (lead).
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `notes:write`
+</ParamField>
+
+## Body
+
+<ParamField body="body" type="string" required>Novo conteúdo (até 5000 caracteres).</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X PATCH https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123/notes/note_2 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "body": "Comprovante conferido e aprovado." }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "note_2", "body": "Comprovante conferido e aprovado.", "authorName": "Integração n8n", "createdAt": "2026-07-21T18:00:00.000Z" } }
+```
+</ResponseExample>

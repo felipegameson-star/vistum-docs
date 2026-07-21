@@ -1,0 +1,35 @@
+---
+title: Atualizar tag
+api: "PATCH /api/v1/tags/{id}"
+description: Renomeia ou recolore uma tag. Envie name e/ou color (ao menos um).
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `tags:write`
+</ParamField>
+
+## Body
+
+Envie `name` e/ou `color` (ao menos um).
+
+<ParamField body="name" type="string">Novo nome da tag (até 64 caracteres).</ParamField>
+<ParamField body="color" type="string">Nova cor em hex de 6 dígitos, ex: `#ef4444`.</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X PATCH https://crm.vistum.com.br/api/v1/tags/tag_vip99 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "color": "#ef4444" }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "tag_vip99", "name": "vip", "color": "#ef4444", "createdAt": "2026-07-21T18:00:00.000Z" } }
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION`, `409 TAG_EXISTS`, `404 NOT_FOUND`.

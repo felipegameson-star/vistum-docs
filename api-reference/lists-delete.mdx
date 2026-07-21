@@ -1,0 +1,26 @@
+---
+title: Excluir lista
+api: "DELETE /api/v1/lists/{id}"
+description: Exclui uma lista de contatos do workspace.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `lists:write`
+</ParamField>
+
+Retorna `{ data: { id, deleted: true } }`. Rate limit: perfil de exclusão.
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://crm.vistum.com.br/api/v1/lists/list_bf01 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "list_bf01", "deleted": true } }
+```
+</ResponseExample>

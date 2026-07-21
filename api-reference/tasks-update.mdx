@@ -1,0 +1,32 @@
+---
+title: Atualizar tarefa
+api: "PATCH /api/v1/tasks/{id}"
+description: Edita ou conclui uma tarefa. Envie ao menos um campo — inclui marcar como concluída via status.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `tasks:write`
+</ParamField>
+
+## Body
+
+Envie **ao menos um** campo: `title`, `description`, `type`, `dueDate`, `status` (`pending`/`done`), `assignedTo`, `contactId`, `cardId`. Vínculos aceitam `null` para desassociar. Para **concluir** a tarefa, envie `status: "done"`.
+
+<RequestExample>
+```bash Concluir tarefa
+curl -X PATCH https://crm.vistum.com.br/api/v1/tasks/task_1 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "status": "done" }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "task_1", "status": "done", "...": "..." } }
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION`, `400 ASSIGNEE_NOT_FOUND`, `400 CONTACT_NOT_FOUND`, `400 CARD_NOT_FOUND`, `404 NOT_FOUND`.

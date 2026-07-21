@@ -1,0 +1,37 @@
+---
+title: Buscar lista por ID
+api: "GET /api/v1/lists/{id}"
+description: Retorna uma lista com seus contatos paginados.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `lists:read`
+</ParamField>
+
+Retorna a lista + seus contatos paginados (`limit`/`offset` aplicam aos contatos).
+
+<RequestExample>
+```bash cURL
+curl "https://crm.vistum.com.br/api/v1/lists/list_bf01" \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": {
+    "id": "list_bf01",
+    "name": "Black Friday 2026",
+    "contactCount": 342,
+    "createdAt": "2026-07-01T10:00:00.000Z",
+    "contacts": [
+      { "id": "cnt_a", "name": "João Ferreira", "phone": "5511999887766" }
+    ]
+  },
+  "pagination": { "total": 342, "limit": 25, "offset": 0, "hasMore": true }
+}
+```
+</ResponseExample>

@@ -1,0 +1,32 @@
+---
+title: Criar anotação
+api: "POST /api/v1/leads/{id}/notes"
+description: Cria uma anotação interna no histórico de um contato (lead).
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `notes:write`
+</ParamField>
+
+## Body
+
+<ParamField body="body" type="string" required>Conteúdo da anotação (até 5000 caracteres).</ParamField>
+
+O autor gravado é o **nome da API Key** (ou `"API"` se a chave não tiver nome).
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123/notes \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "body": "Enviou comprovante de pagamento." }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 — Criado
+{ "data": { "id": "note_2", "body": "Enviou comprovante de pagamento.", "authorName": "Integração n8n", "createdAt": "2026-07-21T18:00:00.000Z" } }
+```
+</ResponseExample>
