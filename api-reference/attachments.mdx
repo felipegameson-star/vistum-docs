@@ -1,0 +1,46 @@
+---
+title: Anexos
+description: Leia os anexos de mídia (imagens, áudios, documentos) trocados com um contato.
+---
+
+Um **anexo** (`MediaAsset`) é um arquivo de mídia trocado no atendimento com o contato — imagem, áudio, documento. Somente leitura.
+
+<Info>
+  **Autenticação** — `Authorization: Bearer vg_live_<sua_chave>` com escopo `attachments:read`.
+</Info>
+
+## Listar anexos
+
+<code>GET /api/v1/leads/{id}/attachments</code> · Escopo `attachments:read` · Rate limit: perfil de leitura
+
+Aceita `limit` (1–100, padrão 25) e `offset`.
+
+<RequestExample>
+```bash cURL
+curl "https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123/attachments" \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": [
+    {
+      "id": "media_1",
+      "type": "image",
+      "filename": "comprovante.jpg",
+      "mimeType": "image/jpeg",
+      "size": 184320,
+      "url": "https://cdn.vistum.com.br/media/...",
+      "createdAt": "2026-07-20T14:30:00.000Z"
+    }
+  ],
+  "pagination": { "total": 1, "limit": 25, "offset": 0, "hasMore": false }
+}
+```
+</ResponseExample>
+
+<Note>
+  O DTO expõe apenas metadados do arquivo + a `url` de leitura. Referências internas de storage nunca são retornadas.
+</Note>

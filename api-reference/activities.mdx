@@ -1,0 +1,39 @@
+---
+title: Atividades do negócio
+description: Leia o log de atividades de um negócio — ligações registradas e mudanças de etapa.
+---
+
+Uma **atividade** (`CardActivity`) é um evento registrado na linha do tempo de um negócio: uma ligação registrada, uma mudança de etapa. Somente leitura.
+
+<Info>
+  **Autenticação** — `Authorization: Bearer vg_live_<sua_chave>` com escopo `activities:read`.
+</Info>
+
+## Listar atividades
+
+<code>GET /api/v1/deals/{id}/activities</code> · Escopo `activities:read` · Rate limit: perfil de leitura
+
+Aceita `limit` (1–100, padrão 25) e `offset`.
+
+<RequestExample>
+```bash cURL
+curl "https://crm.vistum.com.br/api/v1/deals/card_def456ghi/activities" \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": [
+    { "id": "act_1", "type": "call_logged", "actorName": "Carlos", "meta": { "outcome": "no_answer", "attemptNo": 2 }, "createdAt": "2026-07-20T15:00:00.000Z" },
+    { "id": "act_2", "type": "stage_changed", "actorName": "Carlos", "meta": { "from": "Qualificação", "to": "Proposta" }, "createdAt": "2026-07-20T15:05:00.000Z" }
+  ],
+  "pagination": { "total": 2, "limit": 25, "offset": 0, "hasMore": false }
+}
+```
+</ResponseExample>
+
+<Note>
+  O campo `meta` só expõe chaves de uma allowlist benigna (`outcome`, `attemptNo`, `from`, `to`). Qualquer outra chave é removida; sem chave conhecida, `meta` vira `null`. O ator é exposto por **nome**, nunca por ID.
+</Note>

@@ -1,0 +1,49 @@
+---
+title: Insight de IA
+description: Leia o enriquecimento por IA de um contato — interesse, objeções, próximo passo, qualificação e resumo da conversa.
+---
+
+<Tip>
+  **Recurso premium — diferencial do Vistum.** A cada conversa, a IA do Vistum analisa o histórico do contato e destila um **insight de vendas**: o que ele quer, o que o trava, e qual o próximo passo. Este endpoint entrega esse enriquecimento pronto para sua integração — sem você rodar nenhum modelo.
+</Tip>
+
+O **insight** (`AiContactInsight`) é gerado automaticamente pela IA a partir das mensagens do contato. Somente leitura.
+
+<Info>
+  **Autenticação** — `Authorization: Bearer vg_live_<sua_chave>` com escopo `insights:read`.
+</Info>
+
+## Buscar insight do contato
+
+<code>GET /api/v1/leads/{id}/insight</code> · Escopo `insights:read` · Rate limit: perfil de leitura
+
+<RequestExample>
+```bash cURL
+curl "https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123/insight" \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — Com insight
+{
+  "data": {
+    "interest": "Plano PRO anual",
+    "products": ["Plano PRO", "Add-on Suporte"],
+    "objections": ["preço acima do esperado", "quer testar antes"],
+    "nextStep": "Oferecer trial de 7 dias e reforçar ROI.",
+    "qualification": { "score": 8, "temperature": "quente" },
+    "summary": "Cliente demonstrou interesse claro no Plano PRO mas hesita pelo preço.",
+    "updatedAt": "2026-07-21T17:45:00.000Z"
+  }
+}
+```
+
+```json 200 — Ainda sem insight
+{ "data": null }
+```
+</ResponseExample>
+
+<Note>
+  `data: null` com status `200` é um **estado normal**: significa que a IA ainda não gerou insight para esse contato (poucas mensagens, conversa recém-iniciada). Não é erro — reconsulte mais tarde. Os campos `products`, `objections` e `qualification` são JSON livres, dependentes do que a IA extraiu.
+</Note>

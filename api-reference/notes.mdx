@@ -1,0 +1,73 @@
+---
+title: Anotações
+description: Leia, crie, edite e exclua anotações internas de um contato (lead).
+---
+
+Uma **anotação** (`ContactNote`) é uma nota interna registrada no histórico de um contato. Todos os endpoints são aninhados sob o lead (`/api/v1/leads/{id}/notes`).
+
+<Info>
+  **Autenticação** — `Authorization: Bearer vg_live_<sua_chave>`. Listar exige `notes:read`; criar, editar e excluir exigem `notes:write`.
+</Info>
+
+## Listar anotações
+
+<code>GET /api/v1/leads/{id}/notes</code> · Escopo `notes:read` · Rate limit: perfil de leitura
+
+Aceita `limit` (1–100, padrão 25) e `offset`.
+
+<RequestExample>
+```bash cURL
+curl "https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123/notes" \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": [
+    { "id": "note_1", "body": "Cliente pediu retorno na terça.", "authorName": "Carlos", "createdAt": "2026-07-20T14:00:00.000Z" }
+  ],
+  "pagination": { "total": 1, "limit": 25, "offset": 0, "hasMore": false }
+}
+```
+</ResponseExample>
+
+<Note>
+  O DTO expõe o autor apenas por **nome** (`authorName`), nunca por ID.
+</Note>
+
+## Criar anotação
+
+<code>POST /api/v1/leads/{id}/notes</code> · Escopo `notes:write` · Rate limit: perfil de escrita
+
+<ParamField body="body" type="string" required>Conteúdo da anotação (até 5000 caracteres).</ParamField>
+
+O autor gravado é o **nome da API Key** (ou `"API"` se a chave não tiver nome).
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123/notes \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "body": "Enviou comprovante de pagamento." }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 — Criado
+{ "data": { "id": "note_2", "body": "Enviou comprovante de pagamento.", "authorName": "Integração n8n", "createdAt": "2026-07-21T18:00:00.000Z" } }
+```
+</ResponseExample>
+
+## Editar anotação
+
+<code>PATCH /api/v1/leads/{id}/notes/{noteId}</code> · Escopo `notes:write`
+
+<ParamField body="body" type="string" required>Novo conteúdo (até 5000 caracteres).</ParamField>
+
+## Excluir anotação
+
+<code>DELETE /api/v1/leads/{id}/notes/{noteId}</code> · Escopo `notes:write` · Rate limit: perfil de exclusão
+
+Retorna `{ data: { id, deleted: true } }`. `404` se a anotação não pertencer ao contato.

@@ -35,7 +35,86 @@
           {
             "group": "Leads",
             "pages": [
-              "api-reference/leads"
+              "api-reference/leads",
+              "api-reference/leads-manage"
+            ]
+          },
+          {
+            "group": "Negócios",
+            "pages": [
+              "api-reference/deals"
+            ]
+          },
+          {
+            "group": "Tags",
+            "pages": [
+              "api-reference/tags"
+            ]
+          },
+          {
+            "group": "Listas",
+            "pages": [
+              "api-reference/lists"
+            ]
+          },
+          {
+            "group": "Anotações",
+            "pages": [
+              "api-reference/notes"
+            ]
+          },
+          {
+            "group": "Atividades",
+            "pages": [
+              "api-reference/activities"
+            ]
+          },
+          {
+            "group": "Histórico",
+            "pages": [
+              "api-reference/history"
+            ]
+          },
+          {
+            "group": "Anexos",
+            "pages": [
+              "api-reference/attachments"
+            ]
+          },
+          {
+            "group": "Campos e Canais",
+            "pages": [
+              "api-reference/fields-channels"
+            ]
+          },
+          {
+            "group": "Produtos",
+            "pages": [
+              "api-reference/products"
+            ]
+          },
+          {
+            "group": "Tarefas",
+            "pages": [
+              "api-reference/tasks"
+            ]
+          },
+          {
+            "group": "Insight de IA",
+            "pages": [
+              "api-reference/insight"
+            ]
+          },
+          {
+            "group": "Conversas",
+            "pages": [
+              "api-reference/conversations"
+            ]
+          },
+          {
+            "group": "Instâncias",
+            "pages": [
+              "api-reference/instances"
             ]
           },
           {

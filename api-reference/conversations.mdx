@@ -1,0 +1,145 @@
+---
+title: Conversas
+description: Liste conversas, leia mensagens, envie texto (respeitando a janela de 24h) e finalize o atendimento.
+---
+
+Uma **conversa** representa o fio de atendimento com um contato em uma instância (WhatsApp ou Instagram). Este recurso permite ler conversas e mensagens, enviar texto e encerrar o atendimento.
+
+<Info>
+  **Autenticação** — `Authorization: Bearer vg_live_<sua_chave>`. Ler conversas e mensagens exige `conversations:read`; enviar mensagem e finalizar exigem `conversations:send` (escopo dedicado, sem herança de `conversations:read`).
+</Info>
+
+## Listar conversas
+
+<code>GET /api/v1/conversations</code> · Escopo `conversations:read` · Rate limit: perfil de leitura
+
+Grupos de WhatsApp e conexões arquivadas nunca aparecem.
+
+### Parâmetros de query
+
+| Parâmetro | Tipo | Descrição |
+|-----------|------|-----------|
+| `instanceId` | string | Filtra por instância. |
+| `status` | string | `open`, `waiting`, `snoozed` ou `closed`. |
+| `contactId` | string | Conversas de um contato específico. Contato de outro tenant → lista vazia. |
+| `limit` / `offset` | number | Paginação (1–100, padrão 25). |
+
+<RequestExample>
+```bash cURL
+curl "https://crm.vistum.com.br/api/v1/conversations?status=open&limit=25" \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": [
+    {
+      "id": "conv_1",
+      "contact": { "id": "cnt_cmnl5abc123", "name": "João Ferreira", "phone": "5511999887766" },
+      "instanceId": "inst_a1",
+      "channel": "whatsapp",
+      "status": "open",
+      "lastMessageAt": "2026-07-21T17:50:00.000Z",
+      "createdAt": "2026-07-20T09:00:00.000Z"
+    }
+  ],
+  "pagination": { "total": 1, "limit": 25, "offset": 0, "hasMore": false }
+}
+```
+</ResponseExample>
+
+## Buscar conversa com mensagens
+
+<code>GET /api/v1/conversations/{id}</code> · Escopo `conversations:read` · Rate limit: perfil de leitura
+
+Retorna a conversa + mensagens paginadas (mais recentes primeiro). `limit` das mensagens tem teto **100** (padrão 100); `offset` disponível.
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": {
+    "id": "conv_1",
+    "contact": { "id": "cnt_cmnl5abc123", "name": "João Ferreira", "phone": "5511999887766" },
+    "instanceId": "inst_a1",
+    "channel": "whatsapp",
+    "status": "open",
+    "lastMessageAt": "2026-07-21T17:50:00.000Z",
+    "createdAt": "2026-07-20T09:00:00.000Z",
+    "messages": [
+      { "id": "msg_9", "direction": "out", "type": "text", "body": "Bom dia! Tudo certo?", "timestamp": "2026-07-21T17:50:00.000Z", "status": "delivered" },
+      { "id": "msg_8", "direction": "in", "type": "image", "body": "segue o comprovante", "timestamp": "2026-07-21T17:48:00.000Z", "status": "received", "mediaUrl": "https://cdn.vistum.com.br/media/..." }
+    ]
+  },
+  "pagination": { "total": 2, "limit": 100, "offset": 0, "hasMore": false }
+}
+```
+</ResponseExample>
+
+<Note>
+  `direction` é `in` (recebida) ou `out` (enviada). `mediaUrl` só aparece quando a mídia tem URL externa https — referências internas de storage nunca são expostas.
+</Note>
+
+## Enviar mensagem de texto
+
+<code>POST /api/v1/conversations/{id}/messages</code> · Escopo `conversations:send` · Rate limit: perfil de envio (teto absoluto **15 mensagens/min por chave**, fail-closed)
+
+Envia uma mensagem de **texto** pela conversa, reusando a mesma infra do chat humano: mesma checagem de janela de 24h, mesma cota diária de mensagens do plano e mesmo tratamento de erro do provedor.
+
+<Warning>
+  **Somente texto, dentro da janela de 24h.** Mídia e templates não são suportados nesta versão. Na API Oficial (Cloud), fora da janela de 24h só é possível enviar um template aprovado — que este endpoint não faz (retorna `422 WINDOW_CLOSED`). Cada envio **consome a cota diária de mensagens** do plano.
+</Warning>
+
+<ParamField body="text" type="string" required>Texto da mensagem (1 a 4096 caracteres).</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/conversations/conv_1/messages \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "text": "Olá! Recebemos seu comprovante, obrigado." }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 — Enviada
+{ "data": { "id": "msg_10", "status": "sent" } }
+```
+</ResponseExample>
+
+### Erros de envio
+
+| Código HTTP | `code` | Causa |
+|-------------|--------|-------|
+| `404` | `NOT_FOUND` | Conversa inexistente ou de outro workspace. |
+| `409` | `INSTANCE_ARCHIVED` | A conexão foi arquivada. |
+| `422` | `CHANNEL_UNSUPPORTED` | Envio pela API só é suportado no WhatsApp nesta versão. |
+| `422` | `INSTANCE_NOT_READY` | Instância da API Oficial sem credenciais configuradas. |
+| `422` | `WINDOW_CLOSED` | Janela de 24h fechada (Cloud) — só template aprovado seria aceito. |
+| `422` | `INSTANCE_DISCONNECTED` | WhatsApp desconectado (Evolution). |
+| `422` | `NUMBER_INVALID` | Número inválido ou sem WhatsApp. |
+| `429` | `MESSAGE_LIMIT_REACHED` | Cota diária de mensagens do plano atingida. |
+| `402` | `SUBSCRIPTION_INACTIVE` | Assinatura inativa. |
+| `502` | `SEND_FAILED` | Falha do provedor no envio. |
+
+## Finalizar atendimento
+
+<code>POST /api/v1/conversations/{id}/finish</code> · Escopo `conversations:send` · Rate limit: perfil de escrita
+
+Encerra o atendimento (mesma ação do botão "finalizar" do chat): marca a conversa como fechada e encerra a sessão de atendimento. **Idempotente** — finalizar uma conversa já fechada retorna o mesmo estado.
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/conversations/conv_1/finish \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "id": "conv_1", "status": "closed" } }
+```
+</ResponseExample>
+
+`404 NOT_FOUND` se a conversa não existir no workspace.

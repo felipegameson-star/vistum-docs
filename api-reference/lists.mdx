@@ -1,0 +1,126 @@
+---
+title: Listas de contatos
+description: Crie e gerencie listas de contatos — coleções nomeadas usadas para segmentação e disparos — e adicione ou remova contatos.
+---
+
+Uma **lista** é uma coleção nomeada de contatos do workspace, usada para segmentação e disparos.
+
+<Info>
+  **Autenticação** — `Authorization: Bearer vg_live_<sua_chave>`. Leitura exige `lists:read`; criar, renomear, excluir e adicionar/remover contatos exigem `lists:write`.
+</Info>
+
+## Listar listas
+
+<code>GET /api/v1/lists</code> · Escopo `lists:read` · Rate limit: perfil de leitura
+
+Aceita `limit` (1–100, padrão 25) e `offset`.
+
+<RequestExample>
+```bash cURL
+curl "https://crm.vistum.com.br/api/v1/lists" \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": [
+    { "id": "list_bf01", "name": "Black Friday 2026", "contactCount": 342, "createdAt": "2026-07-01T10:00:00.000Z" }
+  ],
+  "pagination": { "total": 1, "limit": 25, "offset": 0, "hasMore": false }
+}
+```
+</ResponseExample>
+
+## Criar lista
+
+<code>POST /api/v1/lists</code> · Escopo `lists:write` · Rate limit: perfil de escrita
+
+<ParamField body="name" type="string" required>Nome da lista (até 120 caracteres).</ParamField>
+<ParamField body="contactIds" type="string[]">IDs de contatos para já incluir (opcional, até 500). A lista pode nascer vazia.</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/lists \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Black Friday 2026", "contactIds": ["cnt_a", "cnt_b"] }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 — Criado
+{ "data": { "id": "list_bf01", "name": "Black Friday 2026", "contactCount": 2, "createdAt": "2026-07-21T18:00:00.000Z" } }
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION`, `402 LIST_LIMIT_REACHED` (cota de listas do plano atingida), `402 SUBSCRIPTION_INACTIVE`.
+
+## Buscar lista com contatos
+
+<code>GET /api/v1/lists/{id}</code> · Escopo `lists:read` · Rate limit: perfil de leitura
+
+Retorna a lista + seus contatos paginados (`limit`/`offset` aplicam aos contatos).
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": {
+    "id": "list_bf01",
+    "name": "Black Friday 2026",
+    "contactCount": 342,
+    "createdAt": "2026-07-01T10:00:00.000Z",
+    "contacts": [
+      { "id": "cnt_a", "name": "João Ferreira", "phone": "5511999887766" }
+    ]
+  },
+  "pagination": { "total": 342, "limit": 25, "offset": 0, "hasMore": true }
+}
+```
+</ResponseExample>
+
+## Renomear lista
+
+<code>PATCH /api/v1/lists/{id}</code> · Escopo `lists:write`
+
+<ParamField body="name" type="string" required>Novo nome (até 120 caracteres).</ParamField>
+
+## Excluir lista
+
+<code>DELETE /api/v1/lists/{id}</code> · Escopo `lists:write` · Rate limit: perfil de exclusão
+
+Retorna `{ data: { id, deleted: true } }`.
+
+## Adicionar contatos à lista
+
+<code>POST /api/v1/lists/{id}/contacts</code> · Escopo `lists:write` · Rate limit: perfil de escrita
+
+<ParamField body="contactIds" type="string[]" required>IDs de contatos válidos do workspace (até 500). IDs de outro tenant, grupos ou excluídos são ignorados.</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/lists/list_bf01/contacts \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "contactIds": ["cnt_c", "cnt_d"] }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "listId": "list_bf01", "added": 2, "contactCount": 344 } }
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION`, `400 NO_VALID_CONTACTS` (nenhum contato válido no workspace).
+
+## Remover contato da lista
+
+<code>DELETE /api/v1/lists/{id}/contacts/{contactId}</code> · Escopo `lists:write` · Rate limit: perfil de exclusão
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "listId": "list_bf01", "contactId": "cnt_c", "removed": true, "contactCount": 343 } }
+```
+</ResponseExample>

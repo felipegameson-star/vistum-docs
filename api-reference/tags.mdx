@@ -1,0 +1,141 @@
+---
+title: Tags
+description: Gerencie as etiquetas do workspace — listar, criar, renomear/recolorir, excluir — e atribua ou remova tags de um contato.
+---
+
+Uma **tag** é uma etiqueta colorida do workspace. Este recurso cobre tanto o CRUD das tags quanto a atribuição de tags a um contato (lead).
+
+<Info>
+  **Autenticação** — `Authorization: Bearer vg_live_<sua_chave>`. Leitura exige `tags:read`; criar, editar, excluir e atribuir/remover em contatos exigem `tags:write`.
+</Info>
+
+## Listar tags
+
+<code>GET /api/v1/tags</code> · Escopo `tags:read` · Rate limit: perfil de leitura
+
+Retorna todas as tags do workspace, ordenadas por data de criação. Aceita `limit` (1–100, padrão 25) e `offset`.
+
+<RequestExample>
+```bash cURL
+curl "https://crm.vistum.com.br/api/v1/tags?limit=50" \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": [
+    { "id": "tag_quente01", "name": "lead-quente", "color": "#22c55e", "createdAt": "2026-06-01T10:00:00.000Z" }
+  ],
+  "pagination": { "total": 1, "limit": 50, "offset": 0, "hasMore": false }
+}
+```
+</ResponseExample>
+
+## Criar tag
+
+<code>POST /api/v1/tags</code> · Escopo `tags:write` · Rate limit: perfil de escrita
+
+<ParamField body="name" type="string" required>Nome da tag (até 64 caracteres).</ParamField>
+<ParamField body="color" type="string">Cor em hex de 6 dígitos, ex: `#22c55e`. Padrão: `#22c55e`.</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/tags \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "vip", "color": "#f59e0b" }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 — Criado
+{ "data": { "id": "tag_vip99", "name": "vip", "color": "#f59e0b", "createdAt": "2026-07-21T18:00:00.000Z" } }
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION` (nome/cor inválidos), `409 TAG_EXISTS` (já existe tag com esse nome).
+
+## Buscar tag
+
+<code>GET /api/v1/tags/{id}</code> · Escopo `tags:read`
+
+Retorna `{ data: { id, name, color, createdAt } }`. `404` se não existir no workspace.
+
+## Atualizar tag
+
+<code>PATCH /api/v1/tags/{id}</code> · Escopo `tags:write` · Rate limit: perfil de escrita
+
+Envie `name` e/ou `color` (ao menos um).
+
+<RequestExample>
+```bash cURL
+curl -X PATCH https://crm.vistum.com.br/api/v1/tags/tag_vip99 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "color": "#ef4444" }'
+```
+</RequestExample>
+
+**Erros:** `400 VALIDATION`, `409 TAG_EXISTS`, `404 NOT_FOUND`.
+
+## Excluir tag
+
+<code>DELETE /api/v1/tags/{id}</code> · Escopo `tags:write` · Rate limit: perfil de exclusão
+
+Retorna `{ data: { id, deleted: true } }`. Se a tag estiver em uso por disparos em andamento → `409 TAG_IN_USE`.
+
+## Atribuir tags a um contato
+
+<code>POST /api/v1/leads/{id}/tags</code> · Escopo `tags:write` · Rate limit: perfil de escrita
+
+Aplica tags a um contato. Envie `tagIds` (IDs existentes) e/ou `names` (criadas por upsert se não existirem). Ambos são deduplicados, máximo 50 por requisição.
+
+<ParamField body="tagIds" type="string[]">IDs de tags existentes no workspace.</ParamField>
+<ParamField body="names" type="string[]">Nomes de tags — criadas automaticamente se não existirem.</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123/tags \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{ "names": ["vip", "instagram"] }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": {
+    "contactId": "cnt_cmnl5abc123",
+    "added": 2,
+    "tags": [
+      { "id": "tag_vip99", "name": "vip", "color": "#f59e0b" },
+      { "id": "tag_ig01", "name": "instagram", "color": "#22c55e" }
+    ]
+  }
+}
+```
+</ResponseExample>
+
+**Erros:** `400 VALIDATION`, `400 NO_VALID_TAGS` (nenhuma tag válida), `404` (contato não encontrado).
+
+## Remover tag de um contato
+
+<code>DELETE /api/v1/leads/{id}/tags/{tagId}</code> · Escopo `tags:write` · Rate limit: perfil de exclusão
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123/tags/tag_vip99 \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{ "data": { "contactId": "cnt_cmnl5abc123", "tagId": "tag_vip99", "removed": true } }
+```
+</ResponseExample>
+
+`removed` é `false` se a tag não estava aplicada ao contato.

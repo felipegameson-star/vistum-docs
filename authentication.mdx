@@ -1,6 +1,6 @@
 ---
 title: Autenticação
-description: Como autenticar suas requisições à API do Vistum.
+description: Como autenticar suas requisições à API do Vistum e escolher os escopos da sua chave.
 ---
 
 ## API Keys
@@ -23,45 +23,80 @@ vg_live_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
   A chave é exibida **uma única vez** no momento da criação. Se perdida, revogue e gere uma nova — não é possível recuperar a chave original.
 </Warning>
 
-## Onde gerar sua API Key
+## Onde gerar e configurar sua API Key
 
 1. Acesse **Configurações → Desenvolvedor → API Keys** no CRM
 2. Clique em **Nova API Key**
-3. Defina um nome descritivo e limite de requisições por minuto
-4. Copie e guarde a chave gerada
+3. Defina um **nome** descritivo, o **limite de requisições por minuto** e uma **data de expiração** (opcional)
+4. Selecione os **escopos** que a chave poderá usar (veja a tabela abaixo)
+5. Copie e guarde a chave gerada
+
+<Note>
+  **O acesso à API depende do plano.** Somente planos **Crescimento** e **Sob consulta** incluem `api_access`. Uma chave válida em um plano sem esse recurso recebe `402 API_ACCESS_REQUIRED`.
+</Note>
 
 ## Escopos
 
-Cada API Key carrega um ou mais escopos que definem quais operações ela pode realizar:
+Cada API Key carrega um ou mais **escopos** que definem exatamente quais operações ela pode realizar. A checagem é **estrita**: um escopo de escrita **não** concede leitura, e vice-versa — cada verbo é um escopo independente.
 
-| Escopo | Permissão | Endpoints |
-|--------|-----------|-----------|
-| `leads:write` | Criar contatos e negócios; ler pipelines e membros | `POST /api/v1/leads`, `GET /api/v1/pipelines`, `GET /api/v1/members` |
-| `pipelines:read` | Ler pipelines, etapas e campos personalizados | `GET /api/v1/pipelines` |
-| `members:read` | Ler membros do workspace | `GET /api/v1/members` |
+| Escopo | Permite |
+|--------|---------|
+| `leads:read` | Listar/buscar contatos, campos personalizados e canais |
+| `leads:write` | Criar e atualizar contatos (inclui `POST /api/v1/leads`) |
+| `leads:delete` | Excluir contatos (soft-delete) |
+| `deals:read` | Listar/buscar negócios |
+| `deals:write` | Criar, atualizar, mover, ganhar/perder e restaurar negócios |
+| `deals:delete` | Excluir negócios (soft-delete) |
+| `tags:read` | Listar/buscar tags |
+| `tags:write` | Criar/editar/excluir tags e atribuir/remover em contatos |
+| `lists:read` | Listar/buscar listas de contatos |
+| `lists:write` | Criar/editar/excluir listas e gerenciar seus contatos |
+| `notes:read` | Listar anotações de um contato |
+| `notes:write` | Criar/editar/excluir anotações |
+| `activities:read` | Ler atividades de um negócio |
+| `history:read` | Ler histórico de etapas de um negócio |
+| `attachments:read` | Ler anexos de mídia de um contato |
+| `pipelines:read` | Ler pipelines, etapas e campos personalizados |
+| `members:read` | Ler membros do workspace |
+| `products:read` | Listar/buscar produtos |
+| `products:write` | Criar/editar/excluir produtos |
+| `tasks:read` | Listar/buscar tarefas |
+| `tasks:write` | Criar/editar/concluir/excluir tarefas |
+| `insights:read` | Ler o insight de IA de um contato |
+| `conversations:read` | Listar conversas e ler mensagens |
+| `conversations:send` | Enviar mensagem de texto e finalizar atendimento |
+| `instances:read` | Listar instâncias (conexões) |
+
+### Editar os escopos de uma chave
+
+Você pode ajustar nome, limite por minuto e **escopos** de uma chave ativa em **Configurações → Desenvolvedor → API Keys → (editar)**. Ampliar escopos é tratado como escalonamento de poder: a mudança é **validada** contra a lista canônica e **auditada**. Uma chave precisa de ao menos um escopo válido.
 
 <Note>
-  As chaves geradas hoje pelo CRM recebem o escopo **`leads:write`**, que **já autoriza** a leitura de pipelines e de membros — você não precisa de uma chave separada para os endpoints `GET /api/v1/pipelines` e `GET /api/v1/members`. Os escopos `pipelines:read` e `members:read` existem para quem quiser uma chave restrita apenas à leitura no futuro.
+  **Compatibilidade Vistum Forms:** chaves antigas emitidas apenas com `leads:write` continuam autorizadas a **ler pipelines e membros** (`pipelines:read`, `members:read`) — e somente esses dois. Nenhum outro escopo é herdado. Chaves novas devem selecionar explicitamente os escopos desejados.
 </Note>
 
 ## Segurança
 
 - **Não exponha sua chave** em código frontend, repositórios públicos ou logs
 - Use **variáveis de ambiente** para armazenar a chave na sua aplicação
+- Conceda **o mínimo de escopos** necessários a cada integração
 - Configure uma **data de expiração** para chaves de uso temporário
 - **Revogue imediatamente** se suspeitar de comprometimento
 
-## Erros de autenticação
+## Erros de autenticação e autorização
 
-| Código | Causa |
-|--------|-------|
-| `401 Unauthorized` | Chave inválida, ausente ou expirada |
-| `403 Forbidden` | Chave válida, mas sem o escopo necessário |
-| `402 Payment Required` | Plano não inclui acesso à API (apenas em `POST /api/v1/leads`) |
+| Código | `code` | Causa |
+|--------|--------|-------|
+| `401` | `UNAUTHORIZED` | Chave inválida ou ausente |
+| `401` | `KEY_EXPIRED` | Chave expirada |
+| `403` | `FORBIDDEN_SCOPE` | Chave válida, mas sem o escopo exigido pelo endpoint |
+| `402` | `API_ACCESS_REQUIRED` | Plano atual não inclui acesso à API |
+| `402` | `SUBSCRIPTION_INACTIVE` | Assinatura cancelada, suspensa, vencida ou em atraso |
 
 ```json Exemplo de resposta 401
 {
   "error": "Unauthorized",
+  "code": "UNAUTHORIZED",
   "hint": "Pass a valid API key: Authorization: Bearer <key>"
 }
 ```
@@ -69,7 +104,7 @@ Cada API Key carrega um ou mais escopos que definem quais operações ela pode r
 ```json Exemplo de resposta 403
 {
   "error": "Forbidden",
-  "hint": "This API key does not have the 'leads:write' scope",
-  "scopes": ["outro:escopo"]
+  "code": "FORBIDDEN_SCOPE",
+  "hint": "This API key does not have the 'deals:write' scope"
 }
 ```

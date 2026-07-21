@@ -1,0 +1,39 @@
+---
+title: Histórico de etapas
+description: Leia o histórico de movimentações entre etapas de um negócio.
+---
+
+O **histórico** (`CardHistory`) registra cada movimentação de um negócio entre etapas do pipeline. Somente leitura.
+
+<Info>
+  **Autenticação** — `Authorization: Bearer vg_live_<sua_chave>` com escopo `history:read`.
+</Info>
+
+## Listar histórico
+
+<code>GET /api/v1/deals/{id}/history</code> · Escopo `history:read` · Rate limit: perfil de leitura
+
+Aceita `limit` (1–100, padrão 25) e `offset`.
+
+<RequestExample>
+```bash cURL
+curl "https://crm.vistum.com.br/api/v1/deals/card_def456ghi/history" \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": [
+    { "id": "hist_1", "fromStage": null, "toStage": "Qualificação", "createdAt": "2026-07-01T12:00:00.000Z" },
+    { "id": "hist_2", "fromStage": "Qualificação", "toStage": "Proposta", "createdAt": "2026-07-20T15:05:00.000Z" }
+  ],
+  "pagination": { "total": 2, "limit": 25, "offset": 0, "hasMore": false }
+}
+```
+</ResponseExample>
+
+<Note>
+  `fromStage` é `null` no primeiro registro — quando o negócio entrou no funil.
+</Note>

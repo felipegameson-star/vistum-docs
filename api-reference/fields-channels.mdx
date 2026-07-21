@@ -1,0 +1,67 @@
+---
+title: Campos e canais do contato
+description: Leia os campos personalizados preenchidos e os canais de contato (WhatsApp, Instagram) de um lead.
+---
+
+Dois endpoints de leitura complementam o perfil de um contato: seus **campos personalizados** preenchidos e os **canais** por onde ele se comunica.
+
+<Info>
+  **Autenticação** — `Authorization: Bearer vg_live_<sua_chave>` com escopo `leads:read`.
+</Info>
+
+## Campos personalizados
+
+<code>GET /api/v1/leads/{id}/custom-fields</code> · Escopo `leads:read` · Rate limit: perfil de leitura
+
+Retorna os campos personalizados **preenchidos** para o contato, com valor já tipado conforme a definição. Este endpoint **não é paginado** — devolve o array direto em `data`.
+
+<RequestExample>
+```bash cURL
+curl "https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123/custom-fields" \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": [
+    { "key": "cidade", "label": "Cidade", "type": "TEXT_SHORT", "value": "São Paulo" },
+    { "key": "orcamento", "label": "Orçamento", "type": "CURRENCY", "value": "5000.00" },
+    { "key": "reuniao", "label": "Reunião", "type": "DATE_TIME", "value": "2026-07-25T14:00:00.000Z" }
+  ]
+}
+```
+</ResponseExample>
+
+<Note>
+  O `value` acompanha o `type`: campos `NUMBER`/`CURRENCY` saem como **string** (precisão), `DATE`/`DATE_TIME` como ISO, `SELECT_SINGLE`/`SELECT_MULTI` como JSON, e os demais como texto. Campos sem valor ou excluídos não aparecem.
+</Note>
+
+## Canais
+
+<code>GET /api/v1/leads/{id}/channels</code> · Escopo `leads:read` · Rate limit: perfil de leitura
+
+Retorna os canais (`ContactChannel`) por onde o contato se comunica. Não é paginado.
+
+<RequestExample>
+```bash cURL
+curl "https://crm.vistum.com.br/api/v1/leads/cnt_cmnl5abc123/channels" \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": [
+    { "type": "WHATSAPP", "identifier": "5511999887766" },
+    { "type": "INSTAGRAM_DIRECT", "identifier": "17841400000000000" }
+  ]
+}
+```
+</ResponseExample>
+
+<Note>
+  Cada canal expõe apenas `type` e `identifier`. Tokens, metadados de instância e datas de verificação nunca são retornados.
+</Note>

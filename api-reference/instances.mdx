@@ -1,0 +1,39 @@
+---
+title: Instâncias
+description: Liste as conexões WhatsApp/Instagram do workspace e seu estado de conexão.
+---
+
+Uma **instância** é uma conexão do workspace com um canal — WhatsApp via Evolution API, WhatsApp via API Oficial (Cloud) ou Instagram. Somente leitura.
+
+<Info>
+  **Autenticação** — `Authorization: Bearer vg_live_<sua_chave>` com escopo `instances:read`.
+</Info>
+
+## Listar instâncias
+
+<code>GET /api/v1/instances</code> · Escopo `instances:read` · Rate limit: perfil de leitura
+
+Aceita `limit` (1–100, padrão 25) e `offset`.
+
+<RequestExample>
+```bash cURL
+curl "https://crm.vistum.com.br/api/v1/instances" \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "data": [
+    { "id": "inst_a1", "name": "Atendimento Vendas", "type": "cloud", "status": "connected", "phoneNumber": "5511999887766" },
+    { "id": "inst_b2", "name": "Suporte", "type": "evolution", "status": "disconnected" }
+  ],
+  "pagination": { "total": 2, "limit": 25, "offset": 0, "hasMore": false }
+}
+```
+</ResponseExample>
+
+<Note>
+  `type` é `cloud` (API Oficial da Meta) ou `evolution`. `status` é normalizado para `connected` ou `disconnected`. `phoneNumber` só aparece quando disponível. Nenhuma credencial (token, phone number ID, webhook secret) é retornada — este é o recurso com maior risco de vazamento e por isso expõe apenas o estritamente necessário.
+</Note>
