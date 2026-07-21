@@ -1,0 +1,86 @@
+---
+title: Listar Pipelines
+api: "GET /api/v1/pipelines"
+description: Lista os pipelines do workspace com suas etapas e campos personalizados. Use para descobrir os IDs e nomes que você vai passar em pipeline e stage ao criar leads.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `leads:write` ou `pipelines:read`.
+
+  A mesma chave usada para [Criar Lead](/api-reference/leads) já funciona aqui: o escopo `leads:write` também autoriza a leitura de pipelines.
+</ParamField>
+
+## Para que serve
+
+Ao [criar um lead](/api-reference/leads), os campos `pipeline` e `stage` aceitam **nome ou ID**. Este endpoint devolve exatamente esses valores para o seu workspace, evitando erros de digitação no nome e permitindo referenciar pipelines/etapas por ID (mais estável que o nome).
+
+Também retorna os **campos personalizados** definidos em cada pipeline, para você saber quais chaves preencher em `customFields`.
+
+## Resposta de sucesso
+
+<ResponseField name="pipelines" type="object[]">
+  Lista de pipelines do workspace, ordenada pela mesma ordem exibida no CRM.
+  <Expandable title="campos do pipeline">
+    <ResponseField name="id" type="string">ID único do pipeline. Use em `pipeline` ao criar um lead.</ResponseField>
+    <ResponseField name="name" type="string">Nome do pipeline.</ResponseField>
+    <ResponseField name="order" type="number">Posição do pipeline na ordenação do CRM.</ResponseField>
+    <ResponseField name="stages" type="object[]">
+      Etapas do pipeline, na ordem do funil.
+      <Expandable title="campos da etapa">
+        <ResponseField name="id" type="string">ID único da etapa. Use em `stage` ao criar um lead.</ResponseField>
+        <ResponseField name="name" type="string">Nome da etapa.</ResponseField>
+        <ResponseField name="order" type="number">Posição da etapa no funil.</ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="customFields" type="object[]">
+      Campos personalizados definidos no pipeline. As chaves aqui são as que você pode enviar em `customFields` ao criar um lead.
+      <Expandable title="campos do campo personalizado">
+        <ResponseField name="id" type="string">ID único da definição do campo.</ResponseField>
+        <ResponseField name="key" type="string">Chave do campo.</ResponseField>
+        <ResponseField name="label" type="string">Rótulo exibido no CRM.</ResponseField>
+        <ResponseField name="type" type="string">Tipo do campo (ex: `text`, `number`, `date`).</ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Erros
+
+| Código | Causa |
+|--------|-------|
+| `401 Unauthorized` | Chave inválida, ausente ou expirada |
+| `403 Forbidden` | Chave válida, mas sem o escopo `leads:write` nem `pipelines:read` |
+| `429 Too Many Requests` | Limite de 120 requisições por minuto (por IP) excedido |
+| `500 Internal Server Error` | Falha ao consultar os pipelines |
+
+<RequestExample>
+```bash cURL
+curl https://crm.vistum.com.br/api/v1/pipelines \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "pipelines": [
+    {
+      "id": "pipe_vendas01",
+      "name": "Vendas",
+      "order": 0,
+      "stages": [
+        { "id": "stage_qualif01", "name": "Qualificação", "order": 0 },
+        { "id": "stage_propost02", "name": "Proposta", "order": 1 },
+        { "id": "stage_fechado03", "name": "Fechado", "order": 2 }
+      ],
+      "customFields": [
+        { "id": "cf_cidade01", "key": "cidade", "label": "Cidade", "type": "text" },
+        { "id": "cf_score02", "key": "score", "label": "Score", "type": "number" }
+      ]
+    }
+  ]
+}
+```
+</ResponseExample>

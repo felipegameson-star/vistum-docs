@@ -32,13 +32,17 @@ vg_live_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
 
 ## Escopos
 
-Cada API Key tem um escopo que define quais operações ela pode realizar:
+Cada API Key carrega um ou mais escopos que definem quais operações ela pode realizar:
 
-| Escopo | Permissão |
-|--------|-----------|
-| `leads:write` | Criar e atualizar contatos e cards no pipeline |
+| Escopo | Permissão | Endpoints |
+|--------|-----------|-----------|
+| `leads:write` | Criar contatos e negócios; ler pipelines e membros | `POST /api/v1/leads`, `GET /api/v1/pipelines`, `GET /api/v1/members` |
+| `pipelines:read` | Ler pipelines, etapas e campos personalizados | `GET /api/v1/pipelines` |
+| `members:read` | Ler membros do workspace | `GET /api/v1/members` |
 
-Atualmente o único escopo disponível é `leads:write`. Novos escopos serão adicionados em versões futuras.
+<Note>
+  As chaves geradas hoje pelo CRM recebem o escopo **`leads:write`**, que **já autoriza** a leitura de pipelines e de membros — você não precisa de uma chave separada para os endpoints `GET /api/v1/pipelines` e `GET /api/v1/members`. Os escopos `pipelines:read` e `members:read` existem para quem quiser uma chave restrita apenas à leitura no futuro.
+</Note>
 
 ## Segurança
 
@@ -53,7 +57,7 @@ Atualmente o único escopo disponível é `leads:write`. Novos escopos serão ad
 |--------|-------|
 | `401 Unauthorized` | Chave inválida, ausente ou expirada |
 | `403 Forbidden` | Chave válida, mas sem o escopo necessário |
-| `402 Payment Required` | Plano não inclui acesso à API |
+| `402 Payment Required` | Plano não inclui acesso à API (apenas em `POST /api/v1/leads`) |
 
 ```json Exemplo de resposta 401
 {

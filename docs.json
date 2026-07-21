@@ -33,9 +33,21 @@
         "tab": "Referência da API",
         "groups": [
           {
-            "group": "Referência da API",
+            "group": "Leads",
             "pages": [
               "api-reference/leads"
+            ]
+          },
+          {
+            "group": "Pipelines",
+            "pages": [
+              "api-reference/pipelines"
+            ]
+          },
+          {
+            "group": "Membros",
+            "pages": [
+              "api-reference/members"
             ]
           }
         ]

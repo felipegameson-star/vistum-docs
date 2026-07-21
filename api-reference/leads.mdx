@@ -1,7 +1,7 @@
 ---
 title: Criar Lead
 api: "POST /api/v1/leads"
-description: Cria ou atualiza um contato e opcionalmente o adiciona a um pipeline. Ideal para integrações com n8n, Zapier, Google Sheets, formulários e anúncios.
+description: Cria um contato (deduplicado por telefone) e opcionalmente abre um novo negócio no pipeline. Ideal para integrações com n8n, Zapier, Google Sheets, formulários e anúncios.
 ---
 
 ## Autenticação
@@ -37,7 +37,7 @@ description: Cria ou atualiza um contato e opcionalmente o adiciona a um pipelin
 </ParamField>
 
 <ParamField body="pipeline" type="string">
-  Nome ou ID do pipeline onde o card deve ser criado. Se o pipeline não for encontrado, nenhum card é criado (o contato ainda é salvo).
+  Nome ou ID do pipeline onde o negócio (card) deve ser criado. Se o pipeline não for encontrado, nenhum card é criado (o contato ainda é salvo). Use o endpoint [Listar Pipelines](/api-reference/pipelines) para descobrir nomes e IDs.
 </ParamField>
 
 <ParamField body="stage" type="string">
@@ -57,7 +57,7 @@ description: Cria ou atualiza um contato e opcionalmente o adiciona a um pipelin
 </ParamField>
 
 <ParamField body="assignedTo" type="string">
-  Nome completo do atendente responsável. Deve corresponder exatamente ao nome de um membro do workspace (case-insensitive).
+  Nome completo do atendente responsável. Deve corresponder exatamente ao nome de um membro do workspace (case-insensitive). Use o endpoint [Listar Membros](/api-reference/members) para descobrir os nomes válidos.
 </ParamField>
 
 <ParamField body="customFields" type="object">
@@ -74,14 +74,26 @@ description: Cria ou atualiza um contato e opcionalmente o adiciona a um pipelin
   Máximo de 50 campos por requisição. Chaves com até 64 caracteres, valores com até 512 caracteres.
 </ParamField>
 
-## Comportamento de upsert
+## Comportamento: contato único, negócio sempre novo
 
-O endpoint não cria duplicatas. Se um contato com o mesmo `phone` já existir no workspace:
+A regra mais importante para entender antes de integrar:
 
-- Os campos `name`, `email` e `notes` são **atualizados** se fornecidos
-- As tags são **adicionadas** (não substituídas)
-- O card do pipeline é **atualizado** se já houver um card aberto para o contato naquele pipeline
-- A resposta retorna `"action": "updated"` em vez de `"action": "created"`
+- O **contato é deduplicado por telefone** dentro do workspace — nunca são criados dois contatos para o mesmo número.
+- O **negócio (card) NÃO é deduplicado** — cada chamada com `pipeline` cria um card novo.
+
+<Warning>
+  **Cada chamada que inclui `pipeline` cria um novo negócio (card).** Mesmo que o contato já tenha um card aberto naquele pipeline, um card **novo** é criado — o card existente nunca é reaproveitado nem atualizado. Só o **contato** é único (por telefone).
+
+  Se você chamar este endpoint repetidamente para o mesmo telefone com `pipeline` preenchido, vai acumular vários cards para o mesmo contato. Envie o `pipeline` apenas quando quiser de fato abrir um novo negócio; para só atualizar o contato, omita `pipeline` e `stage`.
+</Warning>
+
+Quando um contato com o mesmo `phone` já existir no workspace:
+
+- O `name` é preenchido **apenas se o contato ainda não tiver nome** — um nome já existente **não** é sobrescrito
+- O `email` é **atualizado** se fornecido
+- As `notes` são **atualizadas** se fornecidas
+- As `tags` são **adicionadas** (nunca substituídas)
+- A resposta retorna `"action": "updated"` e status `200` (em vez de `"action": "created"` com status `201`)
 
 ## Resposta de sucesso
 
@@ -90,7 +102,7 @@ O endpoint não cria duplicatas. Se um contato com o mesmo `phone` já existir n
 </ResponseField>
 
 <ResponseField name="action" type="string">
-  `"created"` se um novo contato foi criado, `"updated"` se o contato já existia.
+  `"created"` (status `201`) se um novo contato foi criado; `"updated"` (status `200`) se o contato já existia. Refere-se **ao contato**, não ao card — um card novo pode ter sido criado mesmo quando `action` é `"updated"`.
 </ResponseField>
 
 <ResponseField name="contact" type="object">
@@ -104,7 +116,7 @@ O endpoint não cria duplicatas. Se um contato com o mesmo `phone` já existir n
 </ResponseField>
 
 <ResponseField name="card" type="object | null">
-  Card criado ou atualizado no pipeline. `null` se nenhum pipeline foi especificado ou encontrado.
+  Novo card criado no pipeline. `null` se nenhum pipeline foi especificado ou encontrado.
   <Expandable title="campos">
     <ResponseField name="id" type="string">ID único do card.</ResponseField>
     <ResponseField name="stageId" type="string">ID da etapa onde o card foi colocado.</ResponseField>
@@ -165,7 +177,7 @@ curl -X POST https://crm.vistum.com.br/api/v1/leads \
 }
 ```
 
-```json 200 — Atualizado
+```json 200 — Atualizado (sem pipeline)
 {
   "ok": true,
   "action": "updated",

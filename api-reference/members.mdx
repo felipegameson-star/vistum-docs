@@ -1,0 +1,63 @@
+---
+title: Listar Membros
+api: "GET /api/v1/members"
+description: Lista os membros do workspace. Use para descobrir os nomes válidos que você vai passar em assignedTo ao criar leads.
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `leads:write` ou `members:read`.
+
+  A mesma chave usada para [Criar Lead](/api-reference/leads) já funciona aqui: o escopo `leads:write` também autoriza a leitura de membros.
+</ParamField>
+
+## Para que serve
+
+Ao [criar um lead](/api-reference/leads), o campo `assignedTo` recebe o **nome completo** do atendente responsável e precisa corresponder exatamente (case-insensitive) a um membro do workspace. Este endpoint devolve a lista de membros para você atribuir o lead ao atendente certo sem erro de digitação.
+
+## Resposta de sucesso
+
+<ResponseField name="members" type="object[]">
+  Lista de membros do workspace, ordenada pela data de entrada.
+  <Expandable title="campos do membro">
+    <ResponseField name="id" type="string">ID do usuário.</ResponseField>
+    <ResponseField name="name" type="string">Nome do membro. É este valor que você passa em `assignedTo`. Se o membro não tiver nome cadastrado, retorna o e-mail.</ResponseField>
+    <ResponseField name="email" type="string">E-mail do membro.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Erros
+
+| Código | Causa |
+|--------|-------|
+| `401 Unauthorized` | Chave inválida, ausente ou expirada |
+| `403 Forbidden` | Chave válida, mas sem o escopo `leads:write` nem `members:read` |
+| `429 Too Many Requests` | Limite de 120 requisições por minuto (por IP) excedido |
+| `500 Internal Server Error` | Falha ao consultar os membros |
+
+<RequestExample>
+```bash cURL
+curl https://crm.vistum.com.br/api/v1/members \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 — OK
+{
+  "members": [
+    {
+      "id": "usr_carlos01",
+      "name": "Carlos Atendente",
+      "email": "carlos@empresa.com"
+    },
+    {
+      "id": "usr_ana02",
+      "name": "Ana Costa",
+      "email": "ana@empresa.com"
+    }
+  ]
+}
+```
+</ResponseExample>
