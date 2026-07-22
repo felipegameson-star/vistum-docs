@@ -10,9 +10,12 @@ Todas as respostas de erro seguem o mesmo formato:
 ```json
 {
   "error": "Descrição do erro",
+  "code": "CODIGO_MAQUINA",
   "hint": "Como corrigir (quando disponível)"
 }
 ```
+
+O campo `code` é estável e legível por máquina — programe suas checagens contra ele, não contra o texto de `error` (que pode mudar). O `hint` aparece só em alguns erros.
 
 ## Códigos HTTP
 
@@ -21,10 +24,13 @@ Todas as respostas de erro seguem o mesmo formato:
 | `400 Bad Request` | Corpo da requisição inválido ou campo obrigatório ausente |
 | `401 Unauthorized` | API Key ausente, inválida ou expirada |
 | `402 Payment Required` | Limite do plano atingido ou recurso não disponível no plano atual |
-| `403 Forbidden` | API Key sem o escopo necessário |
-| `422 Unprocessable Entity` | Requisição válida mas não pode ser executada (ex: workspace sem WhatsApp) |
+| `403 Forbidden` | API Key sem o escopo necessário, ou contato em opt-out |
+| `404 Not Found` | Recurso inexistente ou de outro workspace |
+| `409 Conflict` | Estado conflitante (ex.: requisição idempotente em andamento) |
+| `422 Unprocessable Entity` | Requisição válida mas não pode ser executada (ex.: workspace sem WhatsApp) |
 | `429 Too Many Requests` | Rate limit excedido |
 | `500 Internal Server Error` | Erro interno do servidor |
+| `502 Bad Gateway` | Falha do provedor externo (ex.: WhatsApp) ao processar o envio |
 
 ## Erros comuns
 
@@ -87,15 +93,79 @@ A assinatura do workspace está inativa (cancelada, suspensa ou trial expirado).
 
 Para criar leads via API, o workspace precisa ter pelo menos uma instância de WhatsApp conectada.
 
+## Erros dos endpoints de mensagem
+
+Códigos específicos de [`POST /messages`](/api-reference/messages-send) (número novo) e [`POST /conversations/{id}/messages`](/api-reference/conversations-send) (conversa existente).
+
+### 400 — INVALID_PHONE
+
+```json
+{
+  "error": "Invalid phone number — informe o número no formato internacional com 55 + DDD, ex: 5511987654321",
+  "code": "INVALID_PHONE"
+}
+```
+
+O `phone` precisa vir no formato internacional brasileiro completo: `55` + DDD + número. Sem o `55`/DDD ou com número ambíguo, o CRM recusa para não criar contato duplicado. Aceita o celular com ou sem o 9º dígito.
+
+### 422 — INSTANCE_REQUIRED
+
+```json
+{ "error": "Multiple instances — pass instanceId to choose one", "code": "INSTANCE_REQUIRED" }
+```
+
+O workspace tem mais de uma conexão WhatsApp. Informe `instanceId` no corpo. Liste as conexões em [`GET /instances`](/api-reference/instances).
+
+### 404 — INSTANCE_NOT_FOUND
+
+```json
+{ "error": "Instância não encontrada neste workspace", "code": "INSTANCE_NOT_FOUND" }
+```
+
+O `instanceId` informado não existe (ou não pertence a este workspace).
+
+### 422 — NO_INSTANCE
+
+```json
+{ "error": "Workspace has no WhatsApp instance configured", "code": "NO_INSTANCE" }
+```
+
+O workspace não tem nenhuma conexão WhatsApp configurada. Conecte uma instância antes de enviar.
+
+### 403 — OPTED_OUT
+
+```json
+{ "error": "Contact opted out of marketing", "code": "OPTED_OUT" }
+```
+
+O contato solicitou opt-out de marketing e não pode receber mensagens ativas. Não é seguro para retry.
+
+### 429 — COLD_LIMIT_REACHED
+
+```json
+{ "error": "Daily cold-start limit reached for this workspace", "code": "COLD_LIMIT_REACHED" }
+```
+
+O cap diário de números **novos** do workspace foi atingido. Reinicia no dia seguinte — veja [Rate Limits](/rate-limits).
+
+### 409 — IN_PROGRESS
+
+```json
+{ "error": "A request with this Idempotency-Key is already in progress", "code": "IN_PROGRESS" }
+```
+
+Já existe uma requisição em andamento com o mesmo `Idempotency-Key`. Aguarde a primeira concluir — quando ela termina, uma nova chamada com a mesma chave devolve a **resposta memoizada** (`200`) em vez de reenviar.
+
 ## Retry seguro
 
 Os seguintes erros **são seguros para retry**:
 
 - `429 Too Many Requests` — aguarde o `Retry-After` antes de tentar novamente
-- `500 Internal Server Error` — use backoff exponencial (1s, 2s, 4s...)
+- `409 IN_PROGRESS` — aguarde e repita com o **mesmo** `Idempotency-Key` (nunca reenvia em dobro)
+- `500 Internal Server Error` / `502 SEND_FAILED` — use backoff exponencial (1s, 2s, 4s...)
 
 Os seguintes erros **não devem ser retentados** sem corrigir o problema:
 
 - `400` — corrija o payload
-- `401`, `402`, `403` — corrija a autenticação ou plano
-- `422` — verifique a configuração do workspace
+- `401`, `402`, `403` — corrija a autenticação, o plano ou o opt-out do contato
+- `422` — verifique a configuração do workspace, a instância ou a janela de 24h

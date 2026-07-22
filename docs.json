@@ -147,6 +147,7 @@
               "api-reference/conversations",
               "api-reference/conversations-get",
               "api-reference/conversations-send",
+              "api-reference/messages-send",
               "api-reference/conversations-finish"
             ]
           },

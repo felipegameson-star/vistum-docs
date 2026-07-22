@@ -1,50 +1,122 @@
 ---
 title: Enviar mensagem
 api: "POST /api/v1/conversations/{id}/messages"
-description: Envia uma mensagem de texto pela conversa, respeitando a janela de 24h e a cota diária do plano.
+description: Envia texto, mídia ou template Meta por uma conversa existente, respeitando a janela de 24h e a cota diária do plano.
 ---
 
 ## Autenticação
 
 <ParamField header="Authorization" type="string" required>
-  `Bearer vg_live_<sua_chave>` — API Key com escopo `conversations:send` (escopo dedicado, sem herança de `conversations:read`)
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `conversations:send` (escopo dedicado, sem herança de `conversations:read`).
 </ParamField>
 
-Envia uma mensagem de **texto** pela conversa, reusando a mesma infra do chat humano: mesma checagem de janela de 24h, mesma cota diária de mensagens do plano e mesmo tratamento de erro do provedor. Rate limit: perfil de envio (teto absoluto **15 mensagens/min por chave**, fail-closed).
+Envia uma mensagem por uma **conversa que já existe**, reusando a mesma infra do chat humano: mesma checagem de janela de 24h, mesma cota diária de mensagens do plano e mesmo tratamento de erro do provedor. Rate limit: perfil de **envio** (teto absoluto **15 mensagens/min por chave**, fail-closed).
 
-<Warning>
-  **Somente texto, dentro da janela de 24h.** Mídia e templates não são suportados nesta versão. Na API Oficial (Cloud), fora da janela de 24h só é possível enviar um template aprovado — que este endpoint não faz (retorna `422 WINDOW_CLOSED`). Cada envio **consome a cota diária de mensagens** do plano.
-</Warning>
+<Tip>
+  Para iniciar uma conversa com um número **novo** (sem conversa prévia), use [`POST /api/v1/messages`](/api-reference/messages-send), que cria o contato e a conversa automaticamente.
+</Tip>
+
+O corpo é discriminado pelo campo `type`. Quando `type` é omitido, a mensagem é tratada como **texto** (retrocompatível com clientes que enviam apenas `{ "text": "..." }`).
+
+| `type` | Envia | Janela de 24h (API Oficial) |
+|--------|-------|------------------------------|
+| `text` (padrão) | Texto livre | Exige janela **aberta** |
+| `image` / `video` / `audio` / `document` | Mídia por URL pública | Exige janela **aberta** |
+| `template` | Template Meta aprovado | Funciona **fora** da janela (reengajamento) |
+
+<Info>
+  Na API Oficial (Cloud), fora da janela de 24h só é possível enviar **template aprovado**. Texto/mídia fora da janela retornam `422 WINDOW_CLOSED`. Cada envio consome a **cota diária de mensagens** do plano.
+</Info>
 
 ## Body
 
-<ParamField body="text" type="string" required>Texto da mensagem (1 a 4096 caracteres).</ParamField>
+<ParamField body="type" type="string">
+  `text` (padrão), `image`, `video`, `audio`, `document` ou `template`.
+</ParamField>
+
+<ParamField body="text" type="string">
+  **Obrigatório quando `type` é `text`.** Texto da mensagem (1 a 4096 caracteres).
+</ParamField>
+
+<ParamField body="mediaUrl" type="string">
+  **Obrigatório para mídia.** URL **https pública** de onde a Meta/Evolution baixa o arquivo (checagem anti-SSRF). Máx. 2048 caracteres.
+</ParamField>
+
+<ParamField body="caption" type="string">Legenda opcional da mídia (máx. 1024 caracteres).</ParamField>
+
+<ParamField body="filename" type="string">Nome do arquivo exibido, útil para `document` (máx. 255 caracteres).</ParamField>
+
+<ParamField body="templateName" type="string">**Obrigatório para `template`.** Nome exato do template aprovado na WABA.</ParamField>
+
+<ParamField body="language" type="string">**Obrigatório para `template`.** Código de idioma (ex.: `pt_BR`). 2 a 15 caracteres.</ParamField>
+
+<ParamField body="variables" type="string[]">
+  Valores **posicionais** das variáveis do corpo do template (a 1ª entrada preenche `{{1}}`, a 2ª `{{2}}`...). Máx. 20 valores, até 1024 caracteres cada. A contagem precisa bater com o template (senão `422 TEMPLATE_INVALID`).
+</ParamField>
+
+### Limites de mídia (Meta)
+
+| Tipo | Limite |
+|------|--------|
+| `image` | 5 MB |
+| `video` | 16 MB |
+| `audio` | 16 MB |
+| `document` | 100 MB |
 
 <RequestExample>
-```bash cURL
+```bash Texto
 curl -X POST https://crm.vistum.com.br/api/v1/conversations/conv_1/messages \
   -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
   -H "Content-Type: application/json" \
   -d '{ "text": "Olá! Recebemos seu comprovante, obrigado." }'
 ```
+
+```bash Template (fora da janela)
+curl -X POST https://crm.vistum.com.br/api/v1/conversations/conv_1/messages \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "template",
+    "templateName": "retorno_carrinho",
+    "language": "pt_BR",
+    "variables": ["João"]
+  }'
+```
+
+```bash Documento por URL
+curl -X POST https://crm.vistum.com.br/api/v1/conversations/conv_1/messages \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "document",
+    "mediaUrl": "https://cdn.exemplo.com/nota-fiscal.pdf",
+    "filename": "nota-fiscal.pdf"
+  }'
+```
 </RequestExample>
 
 <ResponseExample>
 ```json 201 — Enviada
-{ "data": { "id": "msg_10", "status": "sent" } }
+{ "data": { "id": "msg_10", "status": "sent", "type": "text" } }
 ```
 </ResponseExample>
 
 ### Erros de envio
 
-| Código HTTP | `code` | Causa |
-|-------------|--------|-------|
+| HTTP | `code` | Causa |
+|------|--------|-------|
+| `400` | `BAD_REQUEST` | ID da conversa ausente ou JSON inválido. |
+| `400` | `VALIDATION` | O corpo não corresponde a `text`/mídia/`template`. |
 | `404` | `NOT_FOUND` | Conversa inexistente ou de outro workspace. |
 | `409` | `INSTANCE_ARCHIVED` | A conexão foi arquivada. |
-| `422` | `CHANNEL_UNSUPPORTED` | Envio pela API só é suportado no WhatsApp nesta versão. |
-| `422` | `INSTANCE_NOT_READY` | Instância da API Oficial sem credenciais configuradas. |
+| `422` | `CHANNEL_UNSUPPORTED` | O envio pela API só é suportado no WhatsApp. |
+| `422` | `INSTANCE_NOT_READY` | Conexão da API Oficial sem credenciais configuradas. |
 | `422` | `WINDOW_CLOSED` | Janela de 24h fechada (Cloud) — só template aprovado seria aceito. |
 | `422` | `INSTANCE_DISCONNECTED` | WhatsApp desconectado (Evolution). |
+| `422` | `TEMPLATE_REQUIRES_OFFICIAL` | `template` só é enviável por uma conexão da API Oficial. |
+| `422` | `TEMPLATE_INVALID` | Template inexistente, não aprovado, ou nº de variáveis não bate. |
+| `422` | `MEDIA_URL_INVALID` | `mediaUrl` inválida, não-https ou insegura (anti-SSRF). |
+| `422` | `MEDIA_TOO_LARGE` | Mídia acima do limite da Meta. |
 | `422` | `NUMBER_INVALID` | Número inválido ou sem WhatsApp. |
 | `429` | `MESSAGE_LIMIT_REACHED` | Cota diária de mensagens do plano atingida. |
 | `402` | `SUBSCRIPTION_INACTIVE` | Assinatura inativa. |

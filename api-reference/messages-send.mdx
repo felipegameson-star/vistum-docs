@@ -1,0 +1,237 @@
+---
+title: Enviar mensagem para um número novo
+description: Inicia uma conversa com um número que ainda não tem conversa no CRM — cria o contato, cria a conversa e envia a mensagem (texto, mídia ou template).
+---
+
+## Autenticação
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer vg_live_<sua_chave>` — API Key com escopo `conversations:send` (escopo dedicado, sem herança de `conversations:read`).
+</ParamField>
+
+Diferente de [`POST /conversations/{id}/messages`](/api-reference/conversations-send) — que exige uma **conversa já existente** — este endpoint recebe apenas o `phone`: ele faz _find-or-create_ do contato e da conversa e então envia, reusando a **mesma** infraestrutura do chat humano (janela de 24h, cota diária de mensagens do plano, primitivos do provedor e mapeamento de erro da Meta).
+
+<code>POST /api/v1/messages</code> · Escopo `conversations:send` · Rate limit: perfil de **envio a frio** (`send-cold`)
+
+<Warning>
+  Este é o recurso mais sensível da API — envio para números **novos** (cold outreach). Ele tem limites mais apertados que o envio em conversa existente: **10 req/min por IP** e teto absoluto de **5 mensagens/min por chave** (fail-closed), além de um **cap diário de números novos por workspace**. Cada envio consome a **cota diária de mensagens** do plano.
+</Warning>
+
+## Como escolher o `type`
+
+O corpo é discriminado pelo campo `type`. Quando `type` é omitido, assume-se `text`.
+
+| `type` | Envia | Campos |
+|--------|-------|--------|
+| `text` (padrão) | Texto livre | `text` |
+| `image` / `video` / `audio` / `document` | Mídia por URL pública | `mediaUrl`, `caption?`, `filename?` |
+| `template` | Template Meta aprovado | `templateName`, `language`, `variables?` |
+
+<Info>
+  **Regra da Meta para número novo (API Oficial / Cloud):** um número sem conversa prévia está **fora da janela de 24h**. A Meta só aceita **template aprovado** nesse caso. Enviar `text` ou mídia para um número novo em uma conexão Cloud retorna `422 WINDOW_CLOSED`.
+</Info>
+
+<Warning>
+  **Conexão Evolution (não oficial):** o envio de **texto livre** para número novo funciona, mas fazer _cold outreach_ por uma conexão Evolution tem **risco real de banimento do número** pelo WhatsApp. Para prospecção em escala, use a **API Oficial com template aprovado**.
+</Warning>
+
+## Formato do telefone
+
+O campo `phone` exige o número **internacional brasileiro completo**: `55` + DDD (2 dígitos) + número. O formato é flexível — `+`, espaços, parênteses e traços são ignorados —, mas o `55` e o DDD são **obrigatórios**.
+
+```text
+5511987654321      ✅ celular com o 9º dígito
++55 (11) 98765-4321 ✅ mesmo número, formatado
+551187654321       ✅ celular na forma canônica da Meta (sem o 9)
+551133334444       ✅ telefone fixo
+11987654321        ❌ sem o 55 → 400 INVALID_PHONE
+987654321          ❌ sem DDD → 400 INVALID_PHONE
+```
+
+<Note>
+  **9º dígito:** as duas formas do **mesmo** celular — com o `9` (`5511987654321`) e sem o `9` (`551187654321`) — resolvem no **mesmo** contato e na **mesma** conversa. Você não precisa saber qual forma a Meta usa: o CRM canonicaliza no matching (igual ao webhook de entrada) e, no envio Cloud, ainda reconcilia com o `wa_id` autoritativo devolvido pela Meta, para que a resposta do lead caia sempre na mesma conversa. Números **ambíguos** (sem `55`/DDD) são rejeitados com `400 INVALID_PHONE` — o CRM não adivinha país nem DDD, para não criar contato duplicado.
+</Note>
+
+## Body
+
+<ParamField body="phone" type="string" required>
+  Telefone do destinatário no formato `55` + DDD + número (ex.: `5511987654321`). Máx. 32 caracteres.
+</ParamField>
+
+<ParamField body="instanceId" type="string">
+  Conexão (instância WhatsApp) usada para enviar. **Opcional** quando o workspace tem **uma única** conexão. **Obrigatório** quando há mais de uma (senão retorna `422 INSTANCE_REQUIRED`). Obtenha os IDs em [`GET /instances`](/api-reference/instances).
+</ParamField>
+
+<ParamField body="type" type="string">
+  `text` (padrão), `image`, `video`, `audio`, `document` ou `template`.
+</ParamField>
+
+<ParamField body="text" type="string">
+  **Obrigatório quando `type` é `text`.** Conteúdo da mensagem, 1 a 4096 caracteres.
+</ParamField>
+
+<ParamField body="mediaUrl" type="string">
+  **Obrigatório para mídia** (`image`/`video`/`audio`/`document`). URL **https pública** de onde a Meta/Evolution baixa o arquivo (passa por checagem anti-SSRF). Máx. 2048 caracteres.
+</ParamField>
+
+<ParamField body="caption" type="string">
+  Legenda opcional da mídia (máx. 1024 caracteres).
+</ParamField>
+
+<ParamField body="filename" type="string">
+  Nome do arquivo exibido, útil para `document` (máx. 255 caracteres).
+</ParamField>
+
+<ParamField body="templateName" type="string">
+  **Obrigatório para `template`.** Nome exato do template aprovado na sua WABA.
+</ParamField>
+
+<ParamField body="language" type="string">
+  **Obrigatório para `template`.** Código de idioma do template (ex.: `pt_BR`). 2 a 15 caracteres.
+</ParamField>
+
+<ParamField body="variables" type="string[]">
+  Valores **posicionais** das variáveis do corpo do template, na ordem — a 1ª entrada preenche `{{1}}`, a 2ª `{{2}}`, e assim por diante. Máx. 20 valores, cada um até 1024 caracteres. A contagem precisa bater com o template aprovado (senão `422 TEMPLATE_INVALID`).
+</ParamField>
+
+### Limites de mídia (Meta)
+
+| Tipo | Limite |
+|------|--------|
+| `image` | 5 MB |
+| `video` | 16 MB |
+| `audio` | 16 MB |
+| `document` | 100 MB |
+
+Mídia acima do limite retorna `422 MEDIA_TOO_LARGE`.
+
+## Idempotência
+
+Envie o header opcional `Idempotency-Key` (qualquer string única sua, ex.: um UUID) para evitar envio duplicado em retries. A chave é reservada **atomicamente** antes do envio: dois POSTs concorrentes com a mesma chave nunca enviam duas vezes — o segundo recebe `409 IN_PROGRESS` (ainda em andamento) ou a **resposta memoizada** (`200`, mesmo corpo) por 10 minutos. Uma falha de envio libera a reserva para permitir novo retry com a mesma chave.
+
+```http
+Idempotency-Key: 6f9619ff-8b86-d011-b42d-00cf4fc964ff
+```
+
+## Exemplos
+
+<RequestExample>
+```bash Texto (Evolution)
+curl -X POST https://crm.vistum.com.br/api/v1/messages \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: 6f9619ff-8b86-d011-b42d-00cf4fc964ff" \
+  -d '{
+    "phone": "5511987654321",
+    "text": "Olá! Aqui é da Loja X, tudo bem?",
+    "instanceId": "inst_a1"
+  }'
+```
+
+```bash Template (API Oficial)
+curl -X POST https://crm.vistum.com.br/api/v1/messages \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "5511987654321",
+    "type": "template",
+    "templateName": "boas_vindas",
+    "language": "pt_BR",
+    "variables": ["João", "10%"],
+    "instanceId": "inst_a1"
+  }'
+```
+
+```bash Imagem por URL
+curl -X POST https://crm.vistum.com.br/api/v1/messages \
+  -H "Authorization: Bearer vg_live_SUA_CHAVE_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "5511987654321",
+    "type": "image",
+    "mediaUrl": "https://cdn.exemplo.com/promo.jpg",
+    "caption": "Nossa promoção da semana",
+    "instanceId": "inst_a1"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 — Enviada
+{
+  "data": {
+    "id": "msg_10",
+    "status": "sent",
+    "type": "text",
+    "conversationId": "conv_7",
+    "contactId": "contact_3",
+    "created": { "contact": true, "conversation": true }
+  }
+}
+```
+</ResponseExample>
+
+### Resposta 201
+
+<ResponseField name="data.id" type="string">ID interno da mensagem criada no CRM.</ResponseField>
+<ResponseField name="data.status" type="string">Sempre `sent` quando a resposta é 201.</ResponseField>
+<ResponseField name="data.type" type="string">`text`, `image`, `video`, `audio`, `document` ou `template`.</ResponseField>
+<ResponseField name="data.conversationId" type="string">Conversa (nova ou existente) onde a mensagem foi registrada.</ResponseField>
+<ResponseField name="data.contactId" type="string">Contato (novo ou existente) resolvido pelo telefone.</ResponseField>
+<ResponseField name="data.created" type="object">`{ "contact": boolean, "conversation": boolean }` — indica se o contato e/ou a conversa foram **criados** por esta requisição (`false` = já existiam).</ResponseField>
+
+<Note>
+  Se o envio **falhar** depois de criar contato/conversa (ex.: `WINDOW_CLOSED`, `TEMPLATE_INVALID`, Evolution desconectada), o CRM faz **rollback**: remove o contato/conversa recém-criados e devolve a cota e o slot diário — nada de contato fantasma nem cota queimada por uma tentativa que não entregou.
+</Note>
+
+## Fluxo recomendado
+
+1. **Descubra o `instanceId`** com [`GET /api/v1/instances`](/api-reference/instances) (necessário se o workspace tiver mais de uma conexão; escolha uma `connected`).
+2. **Envie** com `POST /api/v1/messages`, usando `Idempotency-Key` para tornar o retry seguro.
+3. Para número **novo em conexão Cloud**, use sempre `type: "template"` — texto/mídia caem em `422 WINDOW_CLOSED`.
+
+## Erros
+
+### Autenticação e limites
+
+| HTTP | `code` | Causa |
+|------|--------|-------|
+| `401` | `UNAUTHORIZED` | API Key ausente ou inválida. |
+| `401` | `KEY_EXPIRED` | A chave expirou. |
+| `403` | `FORBIDDEN_SCOPE` | A chave não tem o escopo `conversations:send`. |
+| `402` | `API_ACCESS_REQUIRED` | O plano do workspace não inclui acesso à API. |
+| `402` | `SUBSCRIPTION_INACTIVE` | Assinatura cancelada/suspensa/vencida. |
+| `429` | `RATE_LIMIT_IP` | Mais de 10 req/min a partir do mesmo IP. |
+| `429` | `RATE_LIMIT_KEY` | Teto de 5 mensagens/min por chave atingido. |
+
+### Corpo e roteamento
+
+| HTTP | `code` | Causa |
+|------|--------|-------|
+| `400` | `BAD_REQUEST` | JSON inválido no corpo. |
+| `400` | `VALIDATION` | O corpo não corresponde a nenhum formato (`text`/mídia/`template`). |
+| `400` | `INVALID_PHONE` | `phone` sem `55` + DDD, ou número ambíguo. |
+| `409` | `IN_PROGRESS` | Já existe uma requisição em andamento com o mesmo `Idempotency-Key`. |
+| `422` | `INSTANCE_REQUIRED` | Há mais de uma conexão — informe `instanceId`. |
+| `422` | `NO_INSTANCE` | O workspace não tem nenhuma conexão WhatsApp. |
+| `404` | `INSTANCE_NOT_FOUND` | O `instanceId` informado não existe neste workspace. |
+| `403` | `OPTED_OUT` | O contato solicitou opt-out de marketing. |
+| `429` | `COLD_LIMIT_REACHED` | Cap diário de números novos do workspace atingido. |
+| `402` | `CONTACT_LIMIT_REACHED` | Limite de contatos do plano atingido. |
+
+### Envio
+
+| HTTP | `code` | Causa |
+|------|--------|-------|
+| `422` | `WINDOW_CLOSED` | Número novo em conexão Cloud fora da janela de 24h — use um template aprovado. |
+| `422` | `TEMPLATE_REQUIRES_OFFICIAL` | `template` só é enviável por uma conexão da API Oficial. |
+| `422` | `TEMPLATE_INVALID` | Template inexistente, não aprovado, ou nº de variáveis não bate. |
+| `422` | `INSTANCE_DISCONNECTED` | Conexão Evolution desconectada. |
+| `422` | `INSTANCE_NOT_READY` | Conexão da API Oficial sem credenciais configuradas. |
+| `409` | `INSTANCE_ARCHIVED` | A conexão foi arquivada. |
+| `422` | `CHANNEL_UNSUPPORTED` | O envio pela API só é suportado no WhatsApp. |
+| `422` | `MEDIA_URL_INVALID` | `mediaUrl` inválida, não-https ou insegura (anti-SSRF). |
+| `422` | `MEDIA_TOO_LARGE` | Mídia acima do limite da Meta. |
+| `422` | `NUMBER_INVALID` | Número sem WhatsApp. |
+| `429` | `MESSAGE_LIMIT_REACHED` | Cota diária de mensagens do plano atingida. |
+| `502` | `SEND_FAILED` | Falha do provedor ao enviar. |

@@ -25,14 +25,19 @@ O limite por IP e o comportamento em falha do Redis dependem do verbo/operação
 | **Escrita** | `POST` / `PATCH` (criar, editar, mover) | 60 req/min | — |
 | **Exclusão** | `DELETE` | 30 req/min | *Fail-closed*: se o Redis falhar, a exclusão é negada |
 | **Envio** | `POST /conversations/{id}/messages` | 20 req/min | Teto absoluto de **15 mensagens/min por chave**, *fail-closed* |
+| **Envio a frio** | `POST /messages` (número novo) | 10 req/min | Teto absoluto de **5 mensagens/min por chave**, *fail-closed* + cap diário por workspace |
 
 <Note>
-  Além do limite por IP, o **limite da chave** também se aplica. No perfil de **envio**, o teto é **no máximo 15 mensagens/min por chave** — mesmo que o limite configurado da chave seja maior — para impedir disparo em massa pela API.
+  Além do limite por IP, o **limite da chave** também se aplica. No perfil de **envio**, o teto é **no máximo 15 mensagens/min por chave**; no de **envio a frio** (mensagem para número novo, `POST /api/v1/messages`), o teto é **5 mensagens/min por chave** — mesmo que o limite configurado da chave seja maior — porque cada envio a frio cria um contato e abre uma conversa nova.
 </Note>
+
+## Cap diário de números novos (cold outreach)
+
+Além do rate limit por minuto, `POST /api/v1/messages` (mensagem para número **novo**) tem um **cap diário por workspace**: um teto de quantos números novos podem ser iniciados por dia, proporcional ao limite de disparo do plano, com piso de **200/dia**. O contador só conta **conversas novas** — enviar para um número que já respondeu antes (conversa existente) **não** consome o cap. Ao atingir o teto, o envio retorna `429 COLD_LIMIT_REACHED` e reinicia no dia seguinte.
 
 ## Cota diária de mensagens
 
-Enviar mensagens (`POST /api/v1/conversations/{id}/messages`) **consome a cota diária de mensagens do plano**, a mesma usada pelo chat humano:
+Enviar mensagens (tanto `POST /api/v1/conversations/{id}/messages` quanto `POST /api/v1/messages`) **consome a cota diária de mensagens do plano**, a mesma usada pelo chat humano:
 
 | Plano | Mensagens/dia |
 |-------|---------------|
@@ -65,7 +70,8 @@ A API retorna `429 Too Many Requests` com `Retry-After` (segundos). O `code` dis
 | `code` | Origem |
 |--------|--------|
 | `RATE_LIMIT_IP` | Limite por IP do perfil da operação |
-| `RATE_LIMIT_KEY` | Limite configurado da chave |
+| `RATE_LIMIT_KEY` | Limite configurado da chave (ou teto do perfil de envio) |
+| `COLD_LIMIT_REACHED` | Cap diário de números novos do workspace |
 | `MESSAGE_LIMIT_REACHED` | Cota diária de mensagens do plano |
 
 ```json
@@ -86,4 +92,4 @@ Retry-After: 42
 - Implemente **retry com backoff exponencial** em caso de 429
 - Monitore o header `X-RateLimit-Remaining` para antecipar throttling
 - Para volumes altos, use **filas** (BullMQ, n8n Queue, etc.) em vez de chamadas paralelas
-- Para envio de mensagens, respeite o teto de 15/min por chave e a cota diária do plano
+- Para envio de mensagens, respeite o teto do perfil (15/min por chave; 5/min no envio a frio), o cap diário de números novos e a cota diária do plano
