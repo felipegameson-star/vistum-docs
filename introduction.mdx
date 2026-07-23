@@ -28,13 +28,18 @@ O Vistum CRM oferece uma API REST para integração com ferramentas externas. Co
 
 ## Disponibilidade por plano
 
-A API está disponível em **todos os planos comerciais**, incluindo o **Essencial** (1 API Key). Os limites de API Keys e webhooks outbound aumentam conforme o plano — veja [Planos e Limites](/plans/limits).
+A API está disponível em **todos os planos comerciais**, incluindo o **Essencial** (1 API Key). Os limites de API Keys e de webhooks aumentam conforme o plano — veja [Planos e Limites](/plans/limits).
 
 | Recurso | Essencial | Crescimento | Sob consulta |
 |---|---|---|---|
 | Acesso à API | ✓ | ✓ | ✓ |
 | API Keys | 1 | 3 | Ilimitado |
-| Webhooks outbound | — | 5 | Ilimitado |
+| Webhooks de entrada (sistema externo → CRM) | 5 | 20 | Ilimitado |
+| Webhooks outbound (CRM → seu sistema) | — | 5 | Ilimitado |
+
+<Note>
+  As duas cotas de webhook são **independentes**. **Entrada** é o gatilho **Webhook recebido** de uma automação, usado para conectar Hotmart, Kiwify, Eduzz, n8n e formulários — disponível já no **Essencial**. **Outbound** é o CRM notificando o seu sistema — a partir do **Crescimento**.
+</Note>
 
 ## Base URL
 

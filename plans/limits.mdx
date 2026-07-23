@@ -25,8 +25,8 @@ Os planos **Essencial** e **Crescimento** incluem **7 dias de trial gratuito**. 
 
 | Recurso | Essencial | Crescimento | Sob consulta |
 |---------|-----------|-------------|---------------|
-| Contatos | 10.000 | 50.000 | Ilimitado |
-| Negócios | 2.000 | 10.000 | Ilimitado |
+| Contatos | 5.000 | 25.000 | Ilimitado |
+| Negócios | 10.000 | 50.000 | Ilimitado |
 | Conexões WhatsApp | 1 | 3 | Ilimitado |
 | Membros da equipe | 2 | 8 | Ilimitado |
 | Automações | 5 | 20 | Ilimitado |
@@ -39,7 +39,30 @@ Os planos **Essencial** e **Crescimento** incluem **7 dias de trial gratuito**. 
 | Listas de contatos | 3 | 10 | Ilimitado |
 | Templates de mensagem | 10 | 50 | Ilimitado |
 | **API Keys** | 1 | 3 | Ilimitado |
-| **Webhooks outbound** | — | 5 | Ilimitado |
+| **Webhooks de entrada** (sistemas externos → CRM) | 5 | 20 | Ilimitado |
+| **Webhooks outbound** (CRM → seu sistema) | — | 5 | Ilimitado |
+
+<Note>
+  **Por que o teto de negócios é maior que o de contatos.** Um mesmo contato costuma gerar vários negócios ao longo do tempo (recompra, renovação, novo orçamento). Por isso o limite de **negócios é o dobro** do limite de **contatos** em todos os planos.
+</Note>
+
+## Os dois tipos de webhook
+
+São cotas **separadas**, para coisas diferentes. Se você está conectando uma plataforma de checkout ao CRM, o que conta é a cota de **entrada**.
+
+| | Webhooks de entrada (inbound) | Webhooks outbound |
+|---|---|---|
+| Direção | Sistema externo → Vistum | Vistum → sistema externo |
+| Para que serve | Receber vendas, leads e eventos de Hotmart, Kiwify, Eduzz, Braip, Monetizze, Perfect Pay, Kirvano, n8n, formulários e qualquer sistema que faça POST HTTP | Notificar o seu sistema quando algo acontece no CRM (lead criado, mensagem recebida, card movido) |
+| Onde se configura | Automações → gatilho **Webhook recebido** (gera URL + token) | Configurações → Desenvolvedor → **Webhooks** |
+| Essencial | **5** | — |
+| Crescimento | 20 | 5 |
+| Sob consulta | Ilimitado | Ilimitado |
+| Documentação | [Webhooks de Entrada](/webhooks/inbound) | [Webhooks (outbound)](/webhooks/overview) |
+
+<Check>
+  O plano **Essencial** integra plataformas de checkout. Cada automação com gatilho **Webhook recebido** consome 1 da cota de webhooks de entrada — com 5, dá para conectar Hotmart, Kiwify, Eduzz e ainda sobra folga para fluxos de reembolso ou um formulário externo.
+</Check>
 
 ## Funcionalidades por plano
 
@@ -49,11 +72,16 @@ Os planos **Essencial** e **Crescimento** incluem **7 dias de trial gratuito**. 
 | Disparo em massa | ✓ | ✓ | ✓ |
 | API de integração | ✓ | ✓ | ✓ |
 | WhatsApp Business API (oficial) | ✓ | ✓ | ✓ |
+| Webhooks de entrada (integrações) | ✓ | ✓ | ✓ |
 | Webhooks outbound | — | ✓ | ✓ |
 
 <Note>
-  O plano **Essencial** já inclui acesso à API (1 API Key) e à API Oficial do WhatsApp. O que aumenta em **Crescimento** e **Sob consulta** é o volume de cada limite e a liberação de **webhooks outbound** (indisponíveis no Essencial).
+  O plano **Essencial** já inclui acesso à API (1 API Key), a API Oficial do WhatsApp e os **webhooks de entrada** (integrações com checkout, n8n e formulários). O que aumenta em **Crescimento** e **Sob consulta** é o volume de cada limite e a liberação de **webhooks outbound** (indisponíveis no Essencial).
 </Note>
+
+## Plano Gratuito
+
+O plano **Gratuito** serve para conhecer o produto: **100 contatos**, **200 negócios**, sem acesso à API, sem webhooks (entrada ou saída) e sem disparo em massa. Para integrar sistemas externos é preciso um plano comercial.
 
 ## Créditos Vistum IA adicionais
 
@@ -69,7 +97,16 @@ Compre créditos extras a qualquer momento, independente do plano:
 
 Os limites são aplicados em **soft enforce**: o workspace continua funcionando normalmente, mas novas criações são bloqueadas quando o limite é atingido.
 
-Por exemplo, ao atingir o limite de contatos, a API retorna `402 Payment Required` com a mensagem `"Contact limit reached"`, mas os contatos existentes continuam acessíveis.
+Por exemplo, ao atingir o limite de contatos, a API retorna `402 Payment Required` com `code: "CONTACT_LIMIT_REACHED"`, mas os contatos existentes continuam acessíveis:
+
+```json
+{
+  "error": "Contact limit reached for this workspace's plan",
+  "code": "CONTACT_LIMIT_REACHED"
+}
+```
+
+O limite de negócios devolve `DEAL_LIMIT_REACHED` no mesmo formato. Programe suas checagens contra o campo `code` — o texto de `error` pode variar entre endpoints. Veja todos os códigos em [Erros](/errors).
 
 <Note>
   O limite de **etapas por pipeline** é por pipeline individual, não a soma de todos os pipelines do workspace.

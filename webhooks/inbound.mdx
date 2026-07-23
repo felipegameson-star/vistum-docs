@@ -39,6 +39,22 @@ Cada automação que usa o gatilho **Webhook recebido** recebe a sua própria UR
   A URL contém o token de autenticação. Trate-a como um segredo — quem tiver a URL pode disparar a automação. Não a exponha em código client-side, repositórios públicos ou logs.
 </Warning>
 
+## Quantos webhooks de entrada por plano
+
+Cada automação com o gatilho **Webhook recebido** consome **1** da cota de webhooks de entrada do workspace. Essa cota é **independente** da cota de [webhooks outbound](/webhooks/overview):
+
+| Plano | Webhooks de entrada | Webhooks outbound |
+|-------|---------------------|-------------------|
+| Essencial | 5 | — |
+| Crescimento | 20 | 5 |
+| Sob consulta | Ilimitado | Ilimitado |
+
+<Check>
+  O plano **Essencial** já recebe webhooks de entrada. Não é preciso subir de plano para conectar Hotmart, Kiwify, Eduzz, n8n ou um formulário externo — o upgrade só é necessário para **enviar** eventos do CRM para fora (outbound) ou para passar de 5 integrações.
+</Check>
+
+Ao apagar a automação (ou regenerar/remover o token do gatilho), a cota é devolvida.
+
 ## Como fazer o POST
 
 O sistema externo envia uma requisição HTTP **POST** para a URL do gatilho, com o corpo em JSON:

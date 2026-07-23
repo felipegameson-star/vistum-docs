@@ -15,7 +15,7 @@ Todas as respostas de erro seguem o mesmo formato:
 }
 ```
 
-O campo `code` é estável e legível por máquina — programe suas checagens contra ele, não contra o texto de `error` (que pode mudar). O `hint` aparece só em alguns erros.
+O campo `code` é estável e legível por máquina — programe suas checagens contra ele, não contra o texto de `error` (que pode mudar e varia de idioma entre endpoints). O `hint` aparece só em alguns erros.
 
 ## Códigos HTTP
 
@@ -61,18 +61,33 @@ O número de telefone deve ter pelo menos 10 dígitos. Aceita formato E.164 ou D
 
 A chave atingiu a data de expiração configurada. Gere uma nova chave.
 
-### 402 — Lead limit reached
+### 402 — Limite do plano atingido
+
+Quando um limite do plano é atingido, a resposta é `402` com um `code` específico do recurso. Os registros já existentes continuam acessíveis — só a **criação** de novos é bloqueada.
 
 ```json
-{ "error": "Lead limit reached for this workspace's plan" }
+{
+  "error": "Contact limit reached for this workspace's plan",
+  "code": "CONTACT_LIMIT_REACHED"
+}
 ```
 
-O workspace atingiu o limite de leads do plano atual. Veja a tabela de limites ou faça upgrade.
+| `code` | Recurso | Onde ocorre |
+|--------|---------|-------------|
+| `CONTACT_LIMIT_REACHED` | Contatos | `POST /api/v1/leads` ao criar um contato novo |
+| `DEAL_LIMIT_REACHED` | Negócios | `POST /api/v1/deals` e `POST /api/v1/leads` quando o payload abre um card |
+| `LIST_LIMIT_REACHED` | Listas de contatos | `POST /api/v1/lists` |
+| `STORAGE_LIMIT_REACHED` | Storage de mídia | Upload de anexos — o `error` traz o consumo atual e o teto em GB |
+
+Consulte os tetos de cada plano em [Planos e Limites](/plans/limits).
 
 ### 402 — API access not available
 
 ```json
-{ "error": "Acesso a API não disponível no plano atual. Faça upgrade para Crescimento ou Sob consulta." }
+{
+  "error": "Acesso a API não disponível no plano atual. Faça upgrade para Crescimento ou Sob consulta.",
+  "code": "API_ACCESS_REQUIRED"
+}
 ```
 
 O acesso à API está disponível em **todos os planos pagos** (Essencial, Crescimento e Sob consulta). Este erro só ocorre para workspaces sem plano ativo — por exemplo, no plano gratuito ou com o período de teste expirado.
@@ -80,10 +95,10 @@ O acesso à API está disponível em **todos os planos pagos** (Essencial, Cresc
 ### 402 — Subscription inactive
 
 ```json
-{ "error": "Subscription inactive" }
+{ "error": "Subscription inactive", "code": "SUBSCRIPTION_INACTIVE" }
 ```
 
-A assinatura do workspace está inativa (cancelada, suspensa ou trial expirado).
+A assinatura do workspace está inativa (cancelada, suspensa, inadimplente ou trial expirado). Alguns endpoints devolvem esse mesmo `code` com a mensagem em português — por isso, cheque sempre o `code`.
 
 ### 422 — No WhatsApp instance
 

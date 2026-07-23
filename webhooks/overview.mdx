@@ -9,6 +9,10 @@ Webhooks são requisições HTTP que o Vistum envia automaticamente para uma URL
 
 Diferente de polling (ficar fazendo GET a cada X segundos), webhooks são **push**: você recebe a notificação imediatamente, sem desperdício de requisições.
 
+<Note>
+  Esta página trata dos webhooks de **saída (outbound)**: Vistum → seu sistema. O caminho inverso — um sistema externo enviando eventos **para dentro** do CRM (Hotmart, Kiwify, Eduzz, n8n, formulários) — tem cota própria e está em [Webhooks de Entrada](/webhooks/inbound).
+</Note>
+
 ## Como configurar
 
 <Steps>
@@ -57,12 +61,14 @@ Você também pode reenviar qualquer delivery manualmente em **Configurações �
 
 ## Planos e limites
 
-| Plano | Webhooks ativos |
-|-------|----------------|
-| Essencial | — |
-| Crescimento | 5 |
-| Sob consulta | Ilimitado |
+As duas direções têm cotas **separadas** — consumir uma não afeta a outra:
+
+| Plano | Webhooks outbound (CRM → você) | Webhooks de entrada (você → CRM) |
+|-------|--------------------------------|----------------------------------|
+| Essencial | — | 5 |
+| Crescimento | 5 | 20 |
+| Sob consulta | Ilimitado | Ilimitado |
 
 <Note>
-  O plano **Essencial** não inclui webhooks outbound. Faça upgrade para **Crescimento** ou **Sob consulta** para recebê-los.
+  O plano **Essencial** não inclui webhooks **outbound** — faça upgrade para **Crescimento** ou **Sob consulta** para recebê-los. Isso **não** impede integrar plataformas externas: os **webhooks de entrada** (Hotmart, Kiwify, Eduzz, n8n, formulários) estão disponíveis no Essencial, com cota própria. Veja [Planos e Limites](/plans/limits).
 </Note>

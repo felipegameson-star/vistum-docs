@@ -13,6 +13,20 @@ Como o mapeamento é feito na automação, **qualquer** plataforma capaz de disp
   A segurança do inbound é o **token na URL**, não HMAC. A verificação de assinatura HMAC documentada em [Verificação de Assinatura](/webhooks/verification) vale só para webhooks de **saída**. Detalhes em [Webhooks de Entrada](/webhooks/inbound).
 </Note>
 
+## Disponibilidade por plano
+
+As integrações usam a cota de **webhooks de entrada**, que é separada da cota de webhooks outbound:
+
+| Plano | Integrações simultâneas (webhooks de entrada) |
+|-------|-----------------------------------------------|
+| Essencial | 5 |
+| Crescimento | 20 |
+| Sob consulta | Ilimitado |
+
+<Check>
+  Integrar Hotmart, Kiwify, Eduzz e afins **já está incluído no plano Essencial**. A restrição de webhooks do Essencial vale apenas para os webhooks **outbound** (CRM notificando o seu sistema). Veja [Planos e Limites](/plans/limits).
+</Check>
+
 ## O que muda de uma plataforma para outra
 
 O mecanismo é sempre o mesmo. As únicas diferenças entre plataformas são:
