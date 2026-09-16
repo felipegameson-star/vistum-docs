@@ -171,6 +171,27 @@ O cap diário de números **novos** do workspace foi atingido. Reinicia no dia s
 
 Já existe uma requisição em andamento com o mesmo `Idempotency-Key`. Aguarde a primeira concluir — quando ela termina, uma nova chamada com a mesma chave devolve a **resposta memoizada** (`200`) em vez de reenviar.
 
+### 422 / 503 — TEMPLATE_HEADER_MEDIA_UNAVAILABLE
+
+```json
+{ "error": "A mídia aprovada do cabeçalho do template não pôde ser usada.", "code": "TEMPLATE_HEADER_MEDIA_UNAVAILABLE" }
+```
+
+O template tem cabeçalho de mídia e ele não pode sair. A API não recebe arquivo para o cabeçalho: com cabeçalho `IMAGE`, o CRM usa a imagem aprovada na Meta automaticamente.
+
+- **`422`** — definitivo: a imagem aprovada não pode ser usada (removida, formato diferente, recusada pela Meta) ou o cabeçalho é `VIDEO`/`DOCUMENT`, que a API não envia. Não repita sem mudar o template.
+- **`503`** — temporário: a Meta ou a CDN dela não entregou a imagem agora. Repita com backoff.
+
+Nos dois casos **nada é enviado à Meta e a cota diária não é consumida**.
+
+### 422 — OFFICIAL_TOKEN_UNAVAILABLE
+
+```json
+{ "error": "A conexão da API Oficial não tem acesso ao template ou à mídia do cabeçalho.", "code": "OFFICIAL_TOKEN_UNAVAILABLE" }
+```
+
+A conexão da API Oficial não conseguiu acessar o template ou a mídia do cabeçalho na Meta: token expirado ou sem permissão, ou a conta WhatsApp Business (WABA) da conexão não pôde ser identificada. Reconecte o número no CRM. Nada é enviado e a cota não é consumida.
+
 ## Retry seguro
 
 Os seguintes erros **são seguros para retry**:
@@ -178,6 +199,7 @@ Os seguintes erros **são seguros para retry**:
 - `429 Too Many Requests` — aguarde o `Retry-After` antes de tentar novamente
 - `409 IN_PROGRESS` — aguarde e repita com o **mesmo** `Idempotency-Key` (nunca reenvia em dobro)
 - `500 Internal Server Error` / `502 SEND_FAILED` — use backoff exponencial (1s, 2s, 4s...)
+- `503 TEMPLATE_HEADER_MEDIA_UNAVAILABLE` — mídia do cabeçalho indisponível no momento; backoff exponencial
 
 Os seguintes erros **não devem ser retentados** sem corrigir o problema:
 

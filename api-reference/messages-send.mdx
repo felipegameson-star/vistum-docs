@@ -94,6 +94,20 @@ O campo `phone` exige o número **internacional brasileiro completo**: `55` + DD
   Valores **posicionais** das variáveis do corpo do template, na ordem — a 1ª entrada preenche `{{1}}`, a 2ª `{{2}}`, e assim por diante. Máx. 20 valores, cada um até 1024 caracteres. A contagem precisa bater com o template aprovado (senão `422 TEMPLATE_INVALID`).
 </ParamField>
 
+### Template com cabeçalho de mídia
+
+A API não recebe arquivo para o cabeçalho do template. Quando o template aprovado tem cabeçalho de **imagem**, o CRM envia automaticamente a **imagem aprovada na Meta** (a mesma do exemplo aprovado), por `media_id` — não é preciso mandar `mediaUrl`.
+
+| Cabeçalho do template | Comportamento |
+|-----------------------|---------------|
+| Sem cabeçalho ou texto | Envio normal. |
+| `IMAGE` | Sai com a imagem aprovada. Se ela não puder ser usada: `422 TEMPLATE_HEADER_MEDIA_UNAVAILABLE` (definitivo) ou `503 TEMPLATE_HEADER_MEDIA_UNAVAILABLE` (temporário — tente de novo). |
+| `VIDEO` / `DOCUMENT` | Não enviável pela API: `422 TEMPLATE_HEADER_MEDIA_UNAVAILABLE`. |
+
+<Note>
+  Nesses erros **nada é enviado à Meta e a cota diária não é consumida**. Se a conexão da API Oficial estiver sem token válido (ou a conta WhatsApp Business não puder ser identificada), a resposta é `422 OFFICIAL_TOKEN_UNAVAILABLE`: reconecte o número no CRM antes de tentar de novo.
+</Note>
+
 ### Limites de mídia (Meta)
 
 | Tipo | Limite |
@@ -226,6 +240,9 @@ curl -X POST https://crm.vistum.com.br/api/v1/messages \
 | `422` | `WINDOW_CLOSED` | Número novo em conexão Cloud fora da janela de 24h — use um template aprovado. |
 | `422` | `TEMPLATE_REQUIRES_OFFICIAL` | `template` só é enviável por uma conexão da API Oficial. |
 | `422` | `TEMPLATE_INVALID` | Template inexistente, não aprovado, ou nº de variáveis não bate. |
+| `422` | `TEMPLATE_HEADER_MEDIA_UNAVAILABLE` | Template com cabeçalho de mídia que não pode sair: imagem aprovada inutilizável, ou cabeçalho `VIDEO`/`DOCUMENT`. Nada enviado, cota não consumida. |
+| `503` | `TEMPLATE_HEADER_MEDIA_UNAVAILABLE` | Imagem aprovada do cabeçalho indisponível no momento (Meta/CDN). Tente de novo com backoff. |
+| `422` | `OFFICIAL_TOKEN_UNAVAILABLE` | A conexão da API Oficial não tem acesso ao template ou à mídia (token expirado, sem permissão ou WABA não identificada). Reconecte o número. |
 | `422` | `INSTANCE_DISCONNECTED` | Conexão Evolution desconectada. |
 | `422` | `INSTANCE_NOT_READY` | Conexão da API Oficial sem credenciais configuradas. |
 | `409` | `INSTANCE_ARCHIVED` | A conexão foi arquivada. |
