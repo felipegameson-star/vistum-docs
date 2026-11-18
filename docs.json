@@ -214,7 +214,8 @@
             "pages": [
               "integrations/overview",
               "integrations/checkout-platforms",
-              "integrations/vistum-forms"
+              "integrations/vistum-forms",
+              "integrations/instagram"
             ]
           }
         ]

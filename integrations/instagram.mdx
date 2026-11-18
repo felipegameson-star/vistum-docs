@@ -1,0 +1,77 @@
+---
+title: Instagram
+description: Referência técnica da integração com o Instagram (Direct e comentários): conexão, permissões, eventos tratados, janelas, limites, erros e como aparece na API.
+---
+
+## Visão geral
+
+O Vistum conecta **uma conta profissional do Instagram por workspace** pelo login oficial do Instagram (OAuth da Meta) e traz as mensagens diretas para o mesmo inbox do WhatsApp. Sobre essa conexão existem duas famílias de automação: **mensagem direta** e **comentários em posts e Reels**. Os tutoriais passo a passo estão na [Central de Ajuda](https://help.vistum.com.br/instagram/automacoes-dm); esta página é a referência técnica.
+
+<Note>
+  A senha do Instagram nunca passa pelo Vistum. O Vistum guarda uma chave de acesso com validade de cerca de 60 dias, cifrada, e a renova antes de vencer.
+</Note>
+
+## Conexão e permissões
+
+| Permissão | Uso |
+|---|---|
+| `instagram_business_basic` | Identificar a conta profissional conectada. |
+| `instagram_business_manage_messages` | Receber e responder mensagens diretas e tocar em botões (postback). |
+| `instagram_business_manage_comments` | Receber comentários de posts e Reels e responder (resposta pública e DM de abertura). |
+
+- Só contas **Profissionais** (Business ou Creator). Uma conta por workspace; a mesma conta não pode estar em dois workspaces.
+- Quem conecta, reconecta ou desconecta: proprietário e administradores.
+- Contas conectadas antes da permissão de comentários precisam **reconectar** para liberar as automações de comentários. As DMs seguem funcionando.
+- **Reconectar** preserva automações e conversas. **Desconectar**, se for a única conta, apaga as conversas e os contatos do Instagram no Vistum.
+
+## Eventos tratados
+
+| Evento | O que o Vistum faz |
+|---|---|
+| Mensagem direta recebida | Cria ou atualiza o contato e a conversa e avalia as automações com gatilho **Mensagem direta no Instagram**. |
+| Toque em botão ou resposta rápida | Continua a conversa em andamento. Não inicia um fluxo novo. |
+| Comentário em post ou Reel | Avalia as automações com gatilho **Comentário no Instagram** (palavra-chave e publicações escolhidas). Ignora comentários da própria conta e respostas a comentários. |
+
+O campo **Último evento** da conexão só considera mensagens diretas. Uma conta que recebe só comentários pode parecer parada nesse campo; use a **Saúde do Instagram**.
+
+## Janelas e limites de envio
+
+| Regra | Valor |
+|---|---|
+| Resposta por DM | Dentro de **24 horas** da última mensagem da pessoa. Fora disso: **Não enviado: janela de 24h do Instagram fechada**. |
+| DM de abertura por comentário | Em até **7 dias**, **uma por comentário**. Não abre a janela de 24 horas: o fluxo só continua depois que a pessoa responde ou toca em um botão. |
+| Texto da mensagem | Até 1000 bytes. Com botões, até 640 caracteres. |
+| Botões | Até 3; título até 20 caracteres; link com `https://`. |
+| Respostas rápidas | Até 13. |
+| Resposta pública ao comentário | De 1 a 10 variações, até 500 caracteres cada, sem variáveis. |
+| Publicações por automação | Até 10 posts ou Reels específicos. |
+
+Quando o Instagram limita o ritmo, o envio é **adiado** e retomado sozinho; isso não é falha. Quando o resultado de um envio é incerto, o Vistum **não reenvia** sozinho, para não duplicar a mensagem ao cliente.
+
+## Aprovação das respostas
+
+Cada conta tem um modo de aprovação definido pelo Vistum. No modo **automático**, as respostas saem sozinhas. No modo **manual**, as respostas a comentários esperam na fila **Aprovações pendentes**; as mensagens de DM de uma automação não têm fila e não são enviadas (histórico: **Aguardando aprovação**).
+
+## Erros e estados
+
+| Mensagem | Significado |
+|---|---|
+| **Token expirado** | O acesso venceu e não foi possível renovar. Reconectar. |
+| **Desativado** | O app foi removido no Instagram ou a Meta revogou. Reconectar. |
+| **Faltam permissões** | Alguma permissão foi desmarcada na autorização. Reconectar e aceitar todas. |
+| **Reconecte para liberar as automações de comentários** | Falta a permissão de comentários. |
+| **Prazo de 7 dias vencido** | O comentário é velho demais para receber a DM de abertura. |
+| **Resultado incerto** | O Instagram não confirmou o envio. Conferir a conversa antes de tentar de novo. |
+| **Opt-out** | A pessoa escreveu PARAR, SAIR ou CANCELAR. Nenhuma automação é enviada a ela. |
+
+A **Saúde do Instagram** (Automações, aba Instagram) mostra o estado (**Saudável**, **Atenção** ou **Parado**), as permissões e os erros por código nas últimas 24 horas ou 7 dias.
+
+## Na API pública
+
+Contatos com Instagram aparecem com o canal `INSTAGRAM_DIRECT` em [Campos e canais](/api-reference/fields-channels), e a conexão aparece em [Instâncias](/api-reference/instances). A lista de eventos de [webhooks outbound](/webhooks/events) é a publicada nessa página. Esta documentação não descreve envio de mensagens do Instagram pela API: use o inbox e as automações.
+
+## Limitações conhecidas
+
+- Não há templates aprovados para reabrir a conversa fora da janela de 24 horas.
+- O Instagram na versão web (computador) não mostra os botões clicáveis; no aplicativo do celular eles aparecem.
+- O fluxo comentário, DM de abertura e toque no botão é testado internamente com a API do Instagram simulada. Ainda não há prova ponta a ponta com uma conta externa real: teste sempre com uma segunda conta.
