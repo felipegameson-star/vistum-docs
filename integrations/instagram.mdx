@@ -48,6 +48,12 @@ O campo **Último evento** da conexão só considera mensagens diretas. Uma cont
 
 Quando o Instagram limita o ritmo, o envio é **adiado** e retomado sozinho; isso não é falha. Quando o resultado de um envio é incerto, o Vistum **não reenvia** sozinho, para não duplicar a mensagem ao cliente.
 
+## Blocos de fluxo: esperar e perguntar
+
+- **Esperar um tempo** (aparece como **Aguardar**): segura o fluxo por minutos, horas ou dias. A mensagem seguinte só sai se a última mensagem da pessoa tem menos de 24 horas; senão o histórico mostra **Fora da janela de 24h**.
+- **Perguntar e aguardar resposta**: faz a pergunta e retoma por texto, botão ou resposta rápida. Pergunta obrigatória; com opções, de 1 a 13, até 20 caracteres cada. Pergunta com template não existe no Instagram.
+- A simulação **Testar** do editor não valida a janela de 24 horas nem os limites do canal.
+
 ## Aprovação das respostas
 
 Cada conta tem um modo de aprovação definido pelo Vistum. No modo **automático**, as respostas saem sozinhas. No modo **manual**, as respostas a comentários esperam na fila **Aprovações pendentes**; as mensagens de DM de uma automação não têm fila e não são enviadas (histórico: **Aguardando aprovação**).

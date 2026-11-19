@@ -207,3 +207,15 @@ Cada execução gera um registro em **AutomationLog**, com status:
 | `dedup` | A execução foi descartada pela proteção anti-loop ou `onlyOnce` |
 
 Os registros podem ser consultados e filtrados na rota **/historico**.
+
+## Automações por canal: WhatsApp e Instagram
+
+O mesmo editor monta automações para dois canais. O canal vem do gatilho do fluxo.
+
+| Canal | Gatilhos de canal | Observações |
+|-------|-------------------|-------------|
+| WhatsApp | Mensagem recebida, palavra-chave, veio de anúncio e os demais gatilhos desta página | Janela de 24 horas e templates aprovados na API Oficial |
+| Instagram | **Mensagem direta no Instagram** e **Comentário no Instagram** | Resposta por DM só dentro de 24 horas da última mensagem da pessoa; a DM de abertura de um comentário sai em até 7 dias e é uma por comentário |
+
+No fluxo do Instagram a paleta oferece: mensagem de texto, botões (até 3), botão com link (`https://`), respostas rápidas (até 13), anexo (imagem, vídeo, áudio ou documento), **Perguntar e aguardar resposta**, **Esperar um tempo**, condições, etiquetas e demais ações de CRM. **Não existem no Instagram**: agente de IA, template e lista de opções. O bloco de comentário (**Responder no comentário** e **Responder por DM**) só existe com o gatilho de comentário. Veja a referência completa em [Instagram](/integrations/instagram).
+
